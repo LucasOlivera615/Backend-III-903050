@@ -1,7 +1,7 @@
 {
-  "name": "shipnow-v1",
-  "version": "1.0.0",
-  "description": "ShipNow API - Versión 1 (punto de partida de la semana)",
+  "name": "shipnow-clase-2",
+  "version": "2.0.0",
+  "description": "ShipNow API - usuarios, pedidos y entregas en capas",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -11,11 +11,12 @@
   "keywords": [
     "backend",
     "api",
-    "productos",
+    "logistica",
     "coderhouse"
   ],
   "license": "MIT",
   "dependencies": {
+    "@faker-js/faker": "^10.6.0",
     "cors": "^2.8.5",
     "dotenv": "^18.0.4",
     "express": "^4.21.2",

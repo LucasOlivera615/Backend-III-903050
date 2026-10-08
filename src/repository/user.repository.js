@@ -2,18 +2,18 @@ import User from "../models/user.model.js";
 
 export const userRepository = {
 
-  getAll: () => {
-    return User.find();
+  getAll: (filter = {}) => {
+    return User.find(filter);
   },
 
-  getByid: (id) => {
+  getById: (id) => {
     return User.findById(id);
   },
 
   getByEmail: (email) => {
     return User.findOne({ email });
   },
-  
+
   create: (newUser) => {
     return User.create(newUser);
   },
@@ -24,5 +24,9 @@ export const userRepository = {
 
   delete: (id) => {
     return User.findByIdAndDelete(id);
+  },
+
+  insertMany: (users) =>{
+    return User.insertMany(users);
   }
 }

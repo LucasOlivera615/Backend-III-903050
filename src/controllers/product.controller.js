@@ -12,7 +12,7 @@ export const getProducts = async (req, res) => {
 
     } catch (error) {
 
-        res.status(500).send('Error del servidor')
+        res.status(error.statusCode || 500).send(error.message)
 
     }
 

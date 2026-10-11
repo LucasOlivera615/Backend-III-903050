@@ -1,5 +1,5 @@
 import { productRepository } from '../repository/product.repository.js'
-import { config } from '../config/index.js'
+import { config } from '../config/env.config.js'
 import { PRODUCT_STATUS } from '../utils/constants.js'
 
 export const productService = {
@@ -16,7 +16,7 @@ export const productService = {
 
         return products.filter((product) => {
 
-            return product.stock > 0 && product.status === 'available'
+            return product.stock > 0 && product.status === PRODUCT_STATUS.AVAILABLE
 
         })
 
@@ -29,12 +29,15 @@ export const productService = {
         if (!product) {
 
             const error = new Error('El producto no fue encontrado')
+
             error.statusCode = 404
+
             throw error
 
         }
 
         return product
+
     },
 
     getShippingCost: async (id) => {
@@ -44,7 +47,9 @@ export const productService = {
         if (!product) {
 
             const error = new Error('El producto no fue encontrado')
+
             error.statusCode = 404
+
             throw error
 
         }
@@ -52,7 +57,9 @@ export const productService = {
         if (!config.shippingApiKey) {
 
             const error = new Error('Falta API key')
+
             error.statusCode = 500
+
             throw error
 
         }
@@ -66,17 +73,21 @@ export const productService = {
             product: product._id,
             declaredValue: product.price,
             shippingCost
+
         }
 
     },
 
     createProduct: async (newProduct) => {
+
         const { title, code, price, stock = 0 } = newProduct
 
         if (!title || !code || price === undefined) {
 
             const error = new Error('Faltan campos obligatorios')
+
             error.statusCode = 400
+
             throw error
 
         }
@@ -84,7 +95,9 @@ export const productService = {
         if (price < 0) {
 
             const error = new Error('El precio no puede ser menor que 0')
+
             error.statusCode = 400
+
             throw error
 
         }
@@ -94,7 +107,9 @@ export const productService = {
         if (existing) {
 
             const error = new Error('El código del producto ya existe')
+
             error.statusCode = 400
+
             throw error
 
         }
@@ -108,20 +123,33 @@ export const productService = {
             stock,
             status
         })
+
     },
 
     updateProduct: async (id, updates) => {
-        if (
-            updates.status === 'Out_of_stock' ||
-            updates.status === 'OUT_OF_STOCK'
-        ) {
-            updates.status = PRODUCT_STATUS.OUT_OF_STOCK
+
+        if (typeof updates.status === 'string') {
+
+            const normalizedStatus = updates.status.toLowerCase()
+
+            if (normalizedStatus === PRODUCT_STATUS.OUT_OF_STOCK) {
+
+                updates.status = PRODUCT_STATUS.OUT_OF_STOCK
+
+            } else if (normalizedStatus === PRODUCT_STATUS.AVAILABLE) {
+
+                updates.status = PRODUCT_STATUS.AVAILABLE
+
+            }
+
         }
 
         if (updates.stock !== undefined) {
+
             updates.status = updates.stock > 0
                 ? PRODUCT_STATUS.AVAILABLE
                 : PRODUCT_STATUS.OUT_OF_STOCK
+
         }
 
         const product = await productRepository.update(id, updates)
@@ -129,12 +157,15 @@ export const productService = {
         if (!product) {
 
             const error = new Error('El producto no fue encontrado')
+
             error.statusCode = 404
+
             throw error
 
         }
 
         return product
+
     },
 
     deleteProduct: async (id) => {
@@ -144,12 +175,15 @@ export const productService = {
         if (!product) {
 
             const error = new Error('El producto no fue encontrado')
+
             error.statusCode = 404
+
             throw error
 
         }
 
         return product
+
     }
 
 }

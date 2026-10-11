@@ -3,6 +3,8 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const requiredEnvVariables = [
+    'NODE_ENV',
+    'PORT',
     'MONGODB_URI',
     'JWT_SECRET',
     'SHIPPING_API_KEY'
@@ -15,8 +17,8 @@ for (const variable of requiredEnvVariables) {
 }
 
 export const config = {
-    port: process.env.PORT || 3000,
-    nodeEnv: process.env.NODE_ENV || 'development',
+    port: process.env.PORT,
+    nodeEnv: process.env.NODE_ENV,
     isProd: process.env.NODE_ENV === 'production',
     mongoDbUri: process.env.MONGODB_URI,
     jwtSecret: process.env.JWT_SECRET,

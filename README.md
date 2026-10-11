@@ -79,6 +79,12 @@ El proyecto está organizado en:
 - `config`: configuración y conexión a la base de datos.
 - `utils`: constantes.
 
+## Separación de responsabilidades
+
+Los controllers manejan las peticiones y respuestas HTTP. Los services contienen las validaciones y reglas de negocio, mientras que los repositories se encargan del acceso a MongoDB.
+
+Esta separación permite probar cada capa de forma independiente. Por ejemplo, un service puede probarse usando un repository simulado, o se puede cambiar la forma de acceder a los datos sin tener que modificar los controllers.
+
 ## Scripts
 
 ```bash

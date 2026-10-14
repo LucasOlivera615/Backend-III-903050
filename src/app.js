@@ -4,6 +4,8 @@ import usersRouter from "./routes/users.router.js";
 import storesRouter from "./routes/stores.router.js";
 import ordersRouter from "./routes/orders.router.js";
 import mocksRouter from "./routes/mocks.router.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
+import { notFoundHandler } from "./middlewares/notFoundHandler.js";
 
 const app = express();
 
@@ -22,11 +24,9 @@ app.use("/api/stores", storesRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/mocks", mocksRouter);
 
-app.use((req, res) => {
-  res.status(404).json({
-    status: "error",
-    message: "Ruta no encontrada"
-  });
-});
+app.use(notFoundHandler);
+
+//middleware global de errores
+app.use(errorHandler);
 
 export default app;

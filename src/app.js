@@ -1,23 +1,32 @@
-import express from 'express';
-import cors from 'cors';
-import usersRouter from './routes/users.js';
-import productsRouter from './routes/products.js';
+import express from "express";
+import cors from "cors";
+import usersRouter from "./routes/users.router.js";
+import storesRouter from "./routes/stores.router.js";
+import ordersRouter from "./routes/orders.router.js";
+import mocksRouter from "./routes/mocks.router.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/users', usersRouter);
-app.use('/api/products', productsRouter);
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/health", (req, res) => {
+  res.json({
+    status: "success",
+    message: "API funcionando"
+  });
 });
 
+app.use("/api/users", usersRouter);
+app.use("/api/stores", storesRouter);
+app.use("/api/orders", ordersRouter);
+app.use("/api/mocks", mocksRouter);
+
 app.use((req, res) => {
-  res.status(404).send('Ruta no encontrada');
+  res.status(404).json({
+    status: "error",
+    message: "Ruta no encontrada"
+  });
 });
 
 export default app;

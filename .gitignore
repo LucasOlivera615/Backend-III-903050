@@ -1,5 +1,6 @@
 node_modules
-npm-debug.log*
-.DS_Store
-docs-clase
 .env
+logs
+uploads
+coverage
+npm-debug.log

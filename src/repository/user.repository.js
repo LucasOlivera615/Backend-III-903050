@@ -1,28 +1,30 @@
-import User from "../models/user.model.js";
+import UserModel from "../models/user.model.js";
 
 export const userRepository = {
-
-  getAll: () => {
-    return User.find();
+  findAll: async () => {
+    return UserModel.find();
   },
 
-  getByid: (id) => {
-    return User.findById(id);
+  findById: async (id) => {
+    return UserModel.findById(id);
   },
 
-  getByEmail: (email) => {
-    return User.findOne({ email });
-  },
-  
-  create: (newUser) => {
-    return User.create(newUser);
+  create: async (userData) => {
+    return UserModel.create(userData);
   },
 
-  update: (id, updates) => {
-    return User.findByIdAndUpdate(id, updates, { new: true });
+  insertMany: async (users) => {
+    return UserModel.insertMany(users);
   },
 
-  delete: (id) => {
-    return User.findByIdAndDelete(id);
-  }
-}
+  update: async (id, userData) => {
+    return UserModel.findByIdAndUpdate(id, userData, {
+      new: true,
+      runValidators: true,
+    });
+  },
+
+  delete: async (id) => {
+    return UserModel.findByIdAndDelete(id);
+  },
+};

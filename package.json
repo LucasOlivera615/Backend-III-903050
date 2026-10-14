@@ -1,25 +1,18 @@
 {
-  "name": "shipnow-v1",
+  "name": "shipnow-api",
   "version": "1.0.0",
-  "description": "ShipNow API - Versión 1 (punto de partida de la semana)",
+  "description": "API REST base para la gestión de logística y envíos.",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
-  "keywords": [
-    "backend",
-    "api",
-    "productos",
-    "coderhouse"
-  ],
-  "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^18.0.4",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "mongoose": "^8.12.1"
+    "mongoose": "^8.9.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

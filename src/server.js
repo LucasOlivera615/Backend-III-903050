@@ -1,20 +1,21 @@
+import "dotenv/config";
 import app from "./app.js";
-import { connectDB } from "./config/db.js";
+import connectDB from "./config/db.js";
 import { config } from "./config/index.js";
 
 const PORT = config.port;
 
-const main = async () => {
+const startServer = async () => {
   try {
     await connectDB();
 
     app.listen(PORT, () => {
-      console.log('Servidor corriendo en puerto ' + PORT);
+      console.log(`Servidor escuchando en el puerto ${PORT}`);
     });
   } catch (error) {
-    console.error("Error al iniciar el servidor ", error.message);
+    console.error(`Error al iniciar el servidor: ${error.message}`);
     process.exit(1);
   }
-}
+};
 
-main();
+startServer();

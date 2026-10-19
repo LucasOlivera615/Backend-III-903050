@@ -1,112 +1,157 @@
 # ShipNow API
 
-API de logística de ShipNow con Node.js, Express y MongoDB. Gestiona usuarios (clientes, repartidores y tiendas), pedidos y entregas, e incluye endpoints de mocking para generar usuarios de prueba con Faker.
+API de logística desarrollada con Node.js, Express y MongoDB. Gestiona usuarios, pedidos y entregas, e incluye endpoints para generar datos de prueba con Faker.
 
 ## Requisitos
 
 - Node.js 18+
-- MongoDB (local o Atlas)
+- MongoDB local o Atlas
 
 ## Instalación
 
 ```bash
 npm install
-cp .env.example .env   # completar con tus valores
+cp .env.example .env
 npm run dev
 ```
 
-Si falta `MONGODB_URI` o `JWT_SECRET`, la app no arranca y avisa qué variable falta.
+Completar las variables de entorno en `.env` antes de iniciar la aplicación. Si falta `MONGODB_URI` o `JWT_SECRET`, la aplicación informa el error al arrancar.
 
 ## Variables de entorno
 
 | Variable | Descripción | Ejemplo |
-| --- | --- | --- |
+|---|---|---|
 | `NODE_ENV` | Entorno de ejecución | `development` |
 | `PORT` | Puerto del servidor | `8080` |
 | `MONGODB_URI` | Conexión a MongoDB | `mongodb://localhost:27017/shipnow` |
-| `JWT_SECRET` | Secreto de la app (también valida la cotización de envío) | `un_secreto_largo` |
+| `JWT_SECRET` | Secreto de la aplicación | `un_secreto_largo` |
 
 ## Endpoints
 
 | Método | Ruta | Descripción |
-| --- | --- | --- |
-| GET | `/api/health` | Health check |
-| GET/POST | `/api/users` | Listar / crear usuarios |
-| GET/PUT/DELETE | `/api/users/:id` | Obtener / actualizar / eliminar usuario |
-| GET/POST | `/api/orders` | Listar / crear pedidos (calcula total y costo de envío) |
-| GET/PUT/DELETE | `/api/orders/:id` | Obtener / actualizar / eliminar pedido |
-| GET/POST | `/api/deliveries` | Listar / crear entregas |
-| GET/PUT/DELETE | `/api/deliveries/:id` | Obtener / actualizar / eliminar entrega |
+|---|---|---|
+| GET | `/api/health` | Estado del servidor |
+| GET/POST | `/api/users` | Listar y crear usuarios |
+| GET/PUT/DELETE | `/api/users/:id` | Consultar, actualizar y eliminar usuarios |
+| GET/POST | `/api/orders` | Listar y crear pedidos |
+| GET/PUT/DELETE | `/api/orders/:id` | Consultar, actualizar y eliminar pedidos |
+| GET/POST | `/api/deliveries` | Listar y crear entregas |
+| GET/PUT/DELETE | `/api/deliveries/:id` | Consultar, actualizar y eliminar entregas |
 
-### Mocks
+## Mocking y carga de datos
 
-Herramientas de desarrollo para tener datos con los que probar la API. Los usuarios se generan con [Faker](https://fakerjs.dev/).
+Las rutas de mocking utilizan Faker para generar datos de prueba. Solo están disponibles fuera de producción.
 
 | Método | Ruta | Descripción |
-| --- | --- | --- |
-| GET | `/api/mocks/mockingUsers?qty=10` | Devuelve usuarios falsos. **No** los guarda |
-| POST | `/api/mocks/seed?qty=10` | Genera usuarios falsos y los **inserta** en MongoDB |
+|---|---|---|
+| GET | `/api/mocks/users?qty=2` | Genera usuarios ficticios sin guardarlos |
+| GET | `/api/mocks/mockingUsers?qty=2` | Alias de la ruta de usuarios |
+| GET | `/api/mocks/orders?qty=2` | Genera pedidos ficticios sin guardarlos |
+| GET | `/api/mocks/deliveries?qty=2` | Genera entregas ficticias sin guardarlas |
+| POST | `/api/mocks/seed?qty=3` | Inserta usuarios, pedidos y entregas en MongoDB |
 
-- `qty` llega por query string. En `seed` también se acepta en el body (`{ "qty": 10 }`); si vienen los dos, gana el query.
-- Sin `qty` se usan 10.
-- `qty` tiene que ser un entero entre 0 y 400. En `seed` tiene que ser mayor a 0, porque insertar 0 usuarios no tiene sentido.
-- Los usuarios generados son `customer` o `driver` (3 a 1, porque los pedidos necesitan clientes), nunca `admin`, y todos tienen la contraseña `coder123!`.
-- El email lleva un sufijo random para no chocar con el índice `unique`.
+### Parámetro `qty`
 
-Respuesta de `POST /api/mocks/seed?qty=10`:
+- Si se omite, se generan 10 elementos.
+- Debe ser un número entero entre 0 y 400.
+- En `seed`, debe ser mayor que 0.
+- También se acepta `qty` en el body de `seed`, como `{ "qty": 3 }`. Si se envían ambos valores, prevalece el de la query string.
 
-```json
-{ "status": "success", "payload": { "users": 10 } }
-```
+Los GET generan datos en memoria. Sus referencias a clientes, pedidos y repartidores son simuladas y no necesariamente corresponden a documentos existentes en MongoDB.
 
-Errores (400):
+El `seed` crea clientes, repartidores, pedidos asociados a clientes y entregas asociadas a pedidos. Aproximadamente el 70 % de las entregas recibe un repartidor y el 30 % queda pendiente de asignación. La cantidad de repartidores generados es `max(1, ceil(qty / 3))`.
 
-| Request | Mensaje |
-| --- | --- |
-| `?qty=muchos`, `?qty=-1`, `?qty=2.5` | `qty debe ser un número entero mayor o igual a 0` |
-| `?qty=401` | `qty no puede superar 400` |
-| `POST /seed?qty=0` | `qty debe ser mayor a 0` |
-
-Todas las respuestas siguen el mismo formato:
+Ejemplo: `POST /api/mocks/seed?qty=3`
 
 ```json
-{ "status": "success", "payload": {} }
-{ "status": "error", "message": "Pedido no encontrado" }
+{
+  "status": "success",
+  "payload": {
+    "users": 4,
+    "orders": 3,
+    "deliveries": 3
+  }
+}
 ```
 
-## Estructura
+La cantidad de usuarios incluye tanto clientes como repartidores. Ejecutar el seed nuevamente genera registros adicionales.
 
+### Validación de `qty`
+
+| Entrada | Resultado |
+|---|---|
+| `qty=muchos`, `qty=-1` o `qty=2.5` | Error 400: debe ser un entero mayor o igual a 0 |
+| `qty=401` | Error 400: no puede superar 400 |
+| `POST /api/mocks/seed?qty=0` | Error 400: debe ser mayor a 0 |
+
+## Formato de respuesta
+
+Las respuestas siguen un formato común:
+
+```json
+{
+  "status": "success",
+  "payload": {}
+}
 ```
+
+En caso de error:
+
+```json
+{
+  "status": "error",
+  "message": "Pedido no encontrado"
+}
+```
+
+## Estructura del proyecto
+
+```text
 src/
-  app.js            express, rutas y middleware de errores
-  server.js         conexión a MongoDB y listen
-  config/           variables de entorno y conexión a la base
-  routes/           endpoints, solo delegan
-  controllers/      leen la request y arman la respuesta
-  services/         reglas de negocio (incluye validación y carga de mocks)
-  repository/       acceso a datos con Mongoose
-  models/           schemas
-  mocks/            generadores de datos falsos con Faker
-  utils/            constantes del dominio y AppError
+  app.js
+  server.js
+  config/
+  routes/
+  controllers/
+  services/
+  repository/
+  models/
+  mocks/
+  utils/
 ```
 
-Flujo de los mocks:
+- `config/`: configuración y conexión a MongoDB.
+- `routes/`: definición de rutas.
+- `controllers/`: manejo de requests y responses.
+- `services/`: reglas de negocio y validaciones.
+- `repository/`: acceso a datos mediante Mongoose.
+- `models/`: esquemas de MongoDB.
+- `mocks/`: generadores de datos ficticios con Faker.
+- `utils/`: constantes y manejo de errores.
 
+Flujo de mocking:
+
+```text
+routes/mocks.js
+  → controllers/mock.controller.js
+  → services/mocks.service.js
+  → mocks/user.mock.js
+  → mocks/order.mock.js
+  → mocks/delivery.mock.js
+  → repositories y servicios de la API
 ```
-routes/mocks.js → controllers/mock.controller.js → services/mocks.service.js → mocks/user.mock.js
-                                                                             → repository/user.repository.js (insertMany)
-```
 
-**Decisiones técnicas:**
+## Decisiones técnicas
 
-- El costo de envío se calcula en `order.service.js` con `calculateShippingCost`, que recibe entorno, valor y API key por parámetro. Así la regla de negocio no depende de `process.env` ni de la base, y se puede probar aislada.
-- El generador de `src/mocks/user.mock.js` solo arma objetos: no conoce Mongoose ni Express. Quien inserta es `mocks.service.js` a través de `userRepository.insertMany`, igual que el resto de la API. Así el router de mocks no habla con los modelos y el generador se puede reutilizar en tests.
-- `seed` usa `insertMany` en vez de un `create` por usuario: una sola operación contra MongoDB, que igual corre las validaciones del schema.
-
+- Los generadores producen objetos sin depender de Express ni de Mongoose.
+- Los servicios coordinan la generación, validación y persistencia de los datos.
+- Los repositorios centralizan el acceso a MongoDB.
+- El servicio de pedidos calcula el total y el costo de envío.
+- Las constantes centralizan los roles, estados y prioridades permitidos.
 
 ## Scripts
 
 | Comando | Uso |
-| --- | --- |
-| `npm run dev` | Desarrollo con nodemon |
-| `npm start` | Producción |
+|---|---|
+| `npm run dev` | Desarrollo con Nodemon |
+| `npm start` | Inicio del servidor |

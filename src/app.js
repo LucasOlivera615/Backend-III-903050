@@ -4,6 +4,8 @@ import usersRouter from './routes/users.js';
 import ordersRouter from './routes/orders.js';
 import deliveriesRouter from './routes/deliveries.js';
 import mocksRouter from "./routes/mocks.js"
+import { config } from './config/index.js'
+
 const app = express();
 
 app.use(cors());
@@ -14,7 +16,9 @@ app.use('/api/users', usersRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/deliveries', deliveriesRouter);
 // Como evitar que este endpoint sea utilizable en un entorno productivo
-app.use("/api/mocks", mocksRouter)
+if (!config.isProd) {
+  app.use('/api/mocks', mocksRouter)
+}
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

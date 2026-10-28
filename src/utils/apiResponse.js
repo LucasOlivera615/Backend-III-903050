@@ -1,27 +1,46 @@
-import { ERROR_CODES, ERROR_DICTIONARY } from "./errorDictionary.js";
 
-export const successResponse = (res, { statusCode = 200 , message = "", payload }) => {
-  return res.status(statusCode).json({ status: "success", message, payload });
+import { ERROR_CODES, ERROR_DICTIONARY } from './errorDictionary.js'
+
+export class AppError extends Error {
+  constructor(code, message) {
+    const config = ERROR_DICTIONARY[code]
+      ?? ERROR_DICTIONARY[ERROR_CODES.INTERNAL_SERVER_ERROR]
+
+    super(message ?? config.message)
+
+    this.name = 'AppError'
+    this.code = ERROR_DICTIONARY[code] ? code : ERROR_CODES.INTERNAL_SERVER_ERROR
+    this.statusCode = config.statusCode
+  }
 }
 
 export const createError = (code, message) => {
-  //capturar el error desde el diccionario
-  const isInDictionary = code in ERROR_DICTIONARY;
-  const activeCode = isInDictionary ? code : ERROR_CODES.INTERNAL_SERVER_ERROR;
-  const configError = ERROR_DICTIONARY[activeCode];
+  return new AppError(code, message)
+}
 
-  //creamos el error
-  const error = new Error(message || configError.message);
-  error.statusCode = configError.statusCode;
-  error.code = activeCode;
-
-  return error;
+export const successResponse = (
+  res,
+  { statusCode = 200, message = '', payload },
+) => {
+  return res.status(statusCode).json({
+    status: 'success',
+    message,
+    payload,
+  })
 }
 
 export const errorResponse = (res, error) => {
-  const statusCode = error.statusCode || ERROR_DICTIONARY[ERROR_CODES.INTERNAL_SERVER_ERROR].statusCode;
-  const message = error.message || ERROR_DICTIONARY[ERROR_CODES.INTERNAL_SERVER_ERROR].message;
-  const code = error.code || ERROR_CODES.INTERNAL_SERVER_ERROR;
+  const isAppError = error instanceof AppError
 
-  return res.status(statusCode).json({ status: "error", message, code });
+  const code = isAppError
+    ? error.code
+    : ERROR_CODES.INTERNAL_SERVER_ERROR
+
+  const config = ERROR_DICTIONARY[code]
+
+  return res.status(config.statusCode).json({
+    status: 'error',
+    message: isAppError ? error.message : config.message,
+    code,
+  })
 }

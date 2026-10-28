@@ -1,38 +1,54 @@
-import * as mocksService from '../service/mocks.service.js';
+import * as mocksService from '../service/mocks.service.js'
+import { successResponse } from '../utils/apiResponse.js'
 
-export const getMockUsers = async (req, res) => {
+export const getMockUsers = async (req, res, next) => {
   try {
-    const quantity = req.query.qty ?? 10;
-    const users = await mocksService.generateUsers(quantity);
+    const quantity = req.query.qty ?? 10
+    const users = await mocksService.generateUsers(quantity)
 
-    res.status(200).json({ status: 'success', payload: users });
+    return successResponse(res, {
+      message: 'Usuarios de prueba generados',
+      payload: users,
+    })
   } catch (error) {
-    res.status(error.statusCode || 500).json({ status: 'error', message: error.message });
+    return next(error)
   }
-};
+}
 
-export const getMockOrders = async (req, res) => {
+export const getMockOrders = async (req, res, next) => {
   try {
-    const quantity = req.query.qty ?? 10;
-    const orders = await mocksService.generateOrders(quantity);
+    const quantity = req.query.qty ?? 10
+    const orders = await mocksService.generateOrders(quantity)
 
-    res.status(200).json({ status: 'success', payload: orders });
+    return successResponse(res, {
+      message: 'Pedidos de prueba generados',
+      payload: orders,
+    })
   } catch (error) {
-    res.status(error.statusCode || 500).json({ status: 'error', message: error.message });
+    return next(error)
   }
-};
+}
 
-export const generateData = async (req, res) => {
+export const generateData = async (req, res, next) => {
   try {
     const {
       users = 10,
       stores = 5,
       orders = 10,
-    } = req.body || {};
-    const result = await mocksService.generateData({ users, stores, orders });
+    } = req.body || {}
 
-    res.status(201).json({ status: 'success', payload: result });
+    const result = await mocksService.generateData({
+      users,
+      stores,
+      orders,
+    })
+
+    return successResponse(res, {
+      statusCode: 201,
+      message: 'Datos de prueba guardados',
+      payload: result,
+    })
   } catch (error) {
-    res.status(error.statusCode || 500).json({ status: 'error', message: error.message });
+    return next(error)
   }
-};
+}

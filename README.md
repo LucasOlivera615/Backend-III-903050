@@ -1,12 +1,10 @@
 # ShipNow API
 
-API de logística construida con Node.js, Express y MongoDB. Esta versión integra la
-base de las clases 1 y 2: configuración inicial, arquitectura por capas y generación
-de datos ficticios.
+API de logística construida con Node.js, Express y MongoDB. Esta versión integra la base de las clases 1 y 2: configuración inicial, arquitectura por capas y generación de datos ficticios.
 
 ## Entidades
 
-La API trabaja únicamente con estas entidades:
+La API trabaja con las siguientes entidades:
 
 - `User`: usuario del sistema. Roles disponibles: `admin`, `customer` y `store`.
 - `Store`: comercio asociado a un usuario con rol `store`.
@@ -16,39 +14,44 @@ No se incluyen entidades `delivery` ni `driver`.
 
 ## Instalación y configuración
 
+Instalar las dependencias:
+
 ```bash
 npm install
 ```
 
-Crear un archivo `.env` en la raíz:
+Crear un archivo `.env` en la raíz del proyecto:
 
 ```env
 PORT=8080
 MONGODB_URI=mongodb://localhost:27017/shipnow
 ```
 
-`MONGODB_URI` es obligatoria. El servidor carga las variables de entorno antes de
-conectarse a MongoDB.
+La variable `MONGODB_URI` es obligatoria. El servidor carga las variables de entorno antes de conectarse a MongoDB.
 
 ## Ejecución
+
+Iniciar el servidor en modo desarrollo:
 
 ```bash
 npm run dev
 ```
 
-Para ejecutar sin nodemon:
+Para ejecutar la aplicación sin Nodemon:
 
 ```bash
 npm start
 ```
 
-La API queda disponible en `http://localhost:8080`.
+La API queda disponible en http://localhost:8080.
 
 ## Arquitectura
 
+El proyecto utiliza una arquitectura por capas:
+
 ```text
 routes       -> define endpoints y delega
-controllers  -> recibe request y construye response
+controllers  -> recibe requests y construye responses
 services     -> contiene la lógica de negocio
 repositories -> accede a MongoDB
 models       -> define schemas de Mongoose
@@ -64,27 +67,41 @@ orders.router.js
   -> order.model.js
 ```
 
-La misma estructura se aplica a `user` y `store`.
+La misma estructura se aplica a `User` y `Store`.
 
-## Respuestas
+## Manejo de errores
 
-Respuesta exitosa:
+La API utiliza un sistema centralizado de manejo de errores. Los servicios detectan errores de negocio y los envían al middleware global, que construye la respuesta HTTP.
+
+**Respuesta exitosa:**
 
 ```json
 {
   "status": "success",
+  "message": "Pedido obtenido",
   "payload": {}
 }
 ```
 
-Respuesta de error:
+**Respuesta de error:**
 
 ```json
 {
   "status": "error",
-  "message": "Usuario no encontrado"
+  "message": "Pedido no encontrado",
+  "code": "ORDER_NOT_FOUND"
 }
 ```
+
+Cada error devuelve un código de estado HTTP y un cuerpo JSON con el mensaje y un código identificador.
+
+Principales códigos HTTP:
+
+- `400 Bad Request`: datos inválidos, identificadores con formato incorrecto o cantidades de mocks fuera del rango permitido.
+- `404 Not Found`: recurso o ruta inexistente.
+- `500 Internal Server Error`: error inesperado del servidor o fallo al persistir datos de prueba.
+
+Los errores de negocio se representan mediante `AppError` y un diccionario de errores. El middleware global centraliza el formato de las respuestas, registra los errores inesperados en el servidor y evita exponer sus detalles internos al cliente.
 
 ## Endpoints principales
 
@@ -93,6 +110,8 @@ Respuesta de error:
 ```http
 GET /health
 ```
+
+Permite comprobar que la API está funcionando.
 
 ### Users
 
@@ -126,7 +145,7 @@ PUT    /api/stores/:sid
 DELETE /api/stores/:sid
 ```
 
-Un store necesita un usuario propietario con rol `store`:
+Un `Store` necesita un usuario propietario con rol `store`:
 
 ```json
 {
@@ -164,13 +183,12 @@ Ejemplo de pedido:
 ```
 
 El service calcula el total automáticamente. El estado inicial es `created`.
-Estados disponibles: `created`, `assigned`, `picked_up`, `in_transit`, `delivered` y
-`cancelled`.
+
+Estados disponibles: `created`, `assigned`, `picked_up`, `in_transit`, `delivered` y `cancelled`.
 
 ## Mocks
 
-Los mocks generan datos dinámicos usando únicamente `User`, `Store` y `Order`. Cada
-generación crea nuevos IDs. Los endpoints de prueba no guardan datos en MongoDB.
+La API permite generar datos ficticios de `User`, `Store` y `Order` en memoria o persistirlos en MongoDB.
 
 ### Usuarios en memoria
 
@@ -178,7 +196,7 @@ generación crea nuevos IDs. Los endpoints de prueba no guardan datos en MongoDB
 GET /api/mocks/mockingusers?qty=5
 ```
 
-Si no se indica `qty`, genera 10 usuarios `customer`.
+Genera 5 usuarios con rol `customer`. Si se omite `qty`, genera 10.
 
 ### Pedidos en memoria
 
@@ -186,8 +204,7 @@ Si no se indica `qty`, genera 10 usuarios `customer`.
 GET /api/mocks/mockingorders?qty=5
 ```
 
-Genera usuarios `customer`, usuarios `store`, comercios y pedidos relacionados sin
-persistirlos.
+Genera usuarios, comercios y pedidos relacionados sin guardarlos en MongoDB.
 
 ### Persistir datos ficticios
 
@@ -205,20 +222,20 @@ Body opcional:
 }
 ```
 
-Sin body se generan 10 usuarios `customer`, 5 usuarios `store`, 5 stores y 10 orders.
-El resultado de `users` incluye ambos tipos de usuario.
+Sin body, genera 10 usuarios `customer`, 5 usuarios `store`, 5 comercios y 10 pedidos. El total de `users` en la respuesta incluye ambos tipos de usuario.
 
-Los datos se persisten en este orden:
+Los datos se guardan en el siguiente orden:
 
 ```text
 users -> stores -> orders
 ```
 
-Respuesta de ejemplo:
+**Respuesta de ejemplo:**
 
 ```json
 {
   "status": "success",
+  "message": "Datos de prueba guardados",
   "payload": {
     "users": 7,
     "stores": 2,
@@ -227,9 +244,35 @@ Respuesta de ejemplo:
 }
 ```
 
-Cada usuario generado tiene un email con un identificador aleatorio para permitir cargas repetidas.
-Las cantidades deben ser enteros entre 0 y 400. Para generar pedidos se necesita
-al menos un customer y un store en la misma carga. Las cantidades inv?lidas devuelven HTTP 400 antes de insertar datos.
+### Validaciones y errores
+
+Las cantidades deben ser números enteros entre 0 y 400. Para generar pedidos se necesita al menos un usuario `customer` y un comercio en la misma solicitud.
+
+Los datos inválidos devuelven HTTP 400. Los fallos de persistencia devuelven HTTP 500 con el código `MOCK_PERSISTENCE_ERROR`.
+
+Ejemplos de pruebas:
+
+**Cantidad negativa: HTTP 400**
+
+```bash
+curl -i "http://localhost:8080/api/mocks/mockingusers?qty=-1"
+```
+
+**Cantidad decimal: HTTP 400**
+
+```bash
+curl -i "http://localhost:8080/api/mocks/mockingorders?qty=1.5"
+```
+
+**Pedidos sin usuarios ni comercios: HTTP 400**
+
+```bash
+curl -i -X POST "http://localhost:8080/api/mocks/generateData" \
+  -H "Content-Type: application/json" \
+  -d '{"users":0,"stores":0,"orders":1}'
+```
+
+Los usuarios generados utilizan emails con identificadores aleatorios para permitir cargas repetidas.
 
 ## Estructura relevante
 
@@ -240,12 +283,11 @@ src/
   config/
   controller/
   mocks/
+  middlewares/
   models/
   repository/
   routes/
   service/
-  utils/constants.js
+  utils/
+    constants.js
 ```
-
-La siguiente etapa puede incorporar manejo global de errores, validaciones más completas,
-tests y documentación Swagger.

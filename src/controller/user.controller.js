@@ -4,7 +4,6 @@ import { successResponse } from '../utils/apiResponse.js';
 export const getUsers = async (req, res, next) => {
   try {
     const users = await userService.getUsers();
-    //res.json({ status: 'success', payload: users });
     successResponse(res, { message: 'Lista de usuarios', payload: users });
   } catch (error) {
     next(error);

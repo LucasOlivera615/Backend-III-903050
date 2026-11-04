@@ -1,28 +1,28 @@
 import * as mocksService from '../service/mocks.service.js';
 
-export const getMockUsers = async (req, res) => {
+export const getMockUsers = async (req, res, next) => {
   try {
     const quantity = req.query.qty ?? 10;
     const users = await mocksService.generateUsers(quantity);
 
     res.status(200).json({ status: 'success', payload: users });
   } catch (error) {
-    res.status(error.statusCode || 500).json({ status: 'error', message: error.message });
+    next(error)
   }
 };
 
-export const getMockOrders = async (req, res) => {
+export const getMockOrders = async (req, res, next) => {
   try {
     const quantity = req.query.qty ?? 10;
     const orders = await mocksService.generateOrders(quantity);
 
     res.status(200).json({ status: 'success', payload: orders });
   } catch (error) {
-    res.status(error.statusCode || 500).json({ status: 'error', message: error.message });
+    next(error)
   }
 };
 
-export const generateData = async (req, res) => {
+export const generateData = async (req, res, next) => {
   try {
     const {
       users = 10,
@@ -33,6 +33,6 @@ export const generateData = async (req, res) => {
 
     res.status(201).json({ status: 'success', payload: result });
   } catch (error) {
-    res.status(error.statusCode || 500).json({ status: 'error', message: error.message });
+    next(error)
   }
 };

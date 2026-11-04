@@ -18,7 +18,7 @@ y un manejo centralizado de errores.
 ## Instalación
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env
 ```
 
@@ -29,9 +29,10 @@ Completar el `.env`:
 | `PORT` | Puerto del servidor | `8080` |
 | `MONGODB_URI` | Conexión a MongoDB (obligatoria) | `mongodb://localhost:27017/shipnow` |
 | `NODE_ENV` | Entorno (`development` o `production`) | `development` |
+| `LOGGER_LVL` | Nivel mínimo de logging en producción | `info` |
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 La API queda en `http://localhost:8080` si `PORT=8080`. Sin `PORT` usa `3000`.
@@ -40,8 +41,8 @@ La API queda en `http://localhost:8080` si `PORT=8080`. Sin `PORT` usa `3000`.
 
 | Comando | Uso |
 | --- | --- |
-| `npm run dev` | Desarrollo con nodemon |
-| `npm start` | Producción |
+| `pnpm dev` | Desarrollo con nodemon |
+| `pnpm start` | Producción |
 
 ## Respuestas
 
@@ -61,6 +62,46 @@ Error (middleware global):
 
 Los controllers de users delegan el error con `next(error)`. El middleware
 traduce `CastError` de Mongoose a `VALIDATION_ERROR` (`ID invalido`).
+
+## Logging
+
+La API utiliza **Winston** para registrar eventos y errores de la aplicación.
+
+### Niveles de logging
+
+Se utilizan seis niveles personalizados, ordenados por criticidad:
+
+| Nivel | Uso |
+| --- | --- |
+| `fatal` | Fallos críticos que impiden iniciar la aplicación o conectarse a MongoDB |
+| `error` | Errores inesperados del servidor |
+| `warning` | Errores controlados, como validaciones o recursos inexistentes |
+| `info` | Eventos importantes, como inicio del servidor, conexión a MongoDB y creación de pedidos |
+| `http` | Registro de solicitudes HTTP |
+| `debug` | Información de depuración |
+
+En desarrollo se habilitan todos los niveles desde `debug`.
+
+En producción, `LOGGER_LVL=info` permite registrar `info`, `warning`, `error` y `fatal`, excluyendo `http` y `debug`.
+
+### Archivos de logs
+
+Los errores `error` y `fatal` se guardan en archivos dentro de la carpeta `logs/`.
+
+- Formato: `errors-YYYY-MM-DD.log`.
+- Rotación diaria.
+- Conservación de los archivos durante 14 días.
+- Los archivos incluyen fecha, nivel, mensaje y detalles del error cuando están disponibles.
+
+La carpeta `logs/` está excluida de Git mediante `.gitignore`.
+
+### Endpoint de prueba
+
+```http
+GET /api/logger-test
+```
+
+Permite probar los seis niveles de logging y comprobar su funcionamiento.
 
 ## Endpoints
 

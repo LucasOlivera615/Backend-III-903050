@@ -1,5 +1,7 @@
 import { storeRepository } from '../repository/store.repository.js';
 import { userRepository } from '../repository/user.repository.js';
+import { createError } from '../utils/apiResponse.js'
+import { ERROR_CODES } from '../utils/errorDictionary.js'
 
 export const storeService = {
   getStores: async () => {
@@ -10,9 +12,7 @@ export const storeService = {
     const store = await storeRepository.findById(id);
 
     if (!store) {
-      const error = new Error('Comercio no encontrado');
-      error.statusCode = 404;
-      throw error;
+      throw createError(ERROR_CODES.STORE_NOT_FOUND)
     }
 
     return store;
@@ -22,23 +22,17 @@ export const storeService = {
     const { name, address, owner } = storeData;
 
     if (!name || !address || !owner) {
-      const error = new Error('Faltan datos obligatorios');
-      error.statusCode = 400;
-      throw error;
+      throw createError(ERROR_CODES.VALIDATION_ERROR)
     }
 
     const ownerFound = await userRepository.findById(owner);
 
     if (!ownerFound) {
-      const error = new Error('Usuario propietario no encontrado');
-      error.statusCode = 404;
-      throw error;
+      throw createError(ERROR_CODES.STORE_OWNER_NOT_FOUND)
     }
 
     if (ownerFound.role !== 'store') {
-      const error = new Error('El propietario debe tener rol store');
-      error.statusCode = 400;
-      throw error;
+      throw createError(ERROR_CODES.INVALID_STORE_OWNER_ROLE)
     }
 
     return storeRepository.create(storeData);
@@ -48,9 +42,7 @@ export const storeService = {
     const store = await storeRepository.update(id, storeData);
 
     if (!store) {
-      const error = new Error('Comercio no encontrado');
-      error.statusCode = 404;
-      throw error;
+      throw createError(ERROR_CODES.STORE_NOT_FOUND)
     }
 
     return store;
@@ -60,9 +52,7 @@ export const storeService = {
     const store = await storeRepository.delete(id);
 
     if (!store) {
-      const error = new Error('Comercio no encontrado');
-      error.statusCode = 404;
-      throw error;
+      throw createError(ERROR_CODES.STORE_NOT_FOUND)
     }
 
     return store;

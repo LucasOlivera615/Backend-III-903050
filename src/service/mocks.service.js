@@ -7,19 +7,31 @@ import {
 import { orderRepository } from '../repository/order.repository.js';
 import { storeRepository } from '../repository/store.repository.js';
 import { userRepository } from '../repository/user.repository.js';
+import logger from '../config/logger.js'
+import { createError } from '../utils/apiResponse.js';
+import { ERROR_CODES } from '../utils/errorDictionary.js';
 
 const validateQuantity = (quantity, name) => {
   const parsed = Number(quantity);
+
   if (!Number.isInteger(parsed) || parsed < 0 || parsed > 400) {
-    const error = new Error(name + ' debe ser un entero entre 0 y 400');
-    error.statusCode = 400;
-    throw error;
+    throw createError(
+      ERROR_CODES.VALIDATION_ERROR,
+      `${name} debe ser un entero entre 0 y 400`
+    )
   }
+
   return parsed;
 };
 
 export const generateUsers = async (quantity) => {
-  return generateMockUsers(validateQuantity(quantity, 'qty'));
+  quantity = validateQuantity(quantity, 'qty')
+
+  const users = generateMockUsers(quantity)
+
+  logger.info(`${quantity} mock users generated`)
+
+  return users
 };
 
 export const generateOrders = async (quantity) => {
@@ -28,11 +40,15 @@ export const generateOrders = async (quantity) => {
   const storeUsers = generateMockStoreUsers(quantity);
   const stores = generateMockStores(storeUsers, quantity);
 
-  return generateMockOrders(
+  const orders = generateMockOrders(
     users.map((user) => user._id),
     stores.map((store) => store._id),
     quantity,
-  );
+  )
+
+  logger.info(`${quantity} mock orders generated`)
+
+  return orders
 };
 
 export const generateData = async ({ users = 10, stores = 5, orders = 10 } = {}) => {
@@ -41,9 +57,10 @@ export const generateData = async ({ users = 10, stores = 5, orders = 10 } = {})
   orders = validateQuantity(orders, 'orders');
 
   if (orders > 0 && (users === 0 || stores === 0)) {
-    const error = new Error('Para generar pedidos se necesita al menos un customer y un store');
-    error.statusCode = 400;
-    throw error;
+    throw createError(
+      ERROR_CODES.VALIDATION_ERROR,
+      'Para generar pedidos se necesita al menos un customer y un store'
+    )
   }
 
   const result = {
@@ -87,6 +104,10 @@ export const generateData = async ({ users = 10, stores = 5, orders = 10 } = {})
     );
     result.orders = createdOrders.length;
   }
+
+  logger.info(
+    `Mock data generated: ${result.users} users, ${result.stores} stores, ${result.orders} orders`
+  )
 
   return result;
 };

@@ -1,6 +1,6 @@
 import winston from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
-import {config} from "./index.js"
+import { config } from "./index.js"
 
 
 // winston funciona con niveles de criticidad siendo el mas bajo el mas critico
@@ -25,23 +25,32 @@ const customLevels = {
 
 winston.addColors(customLevels.colors)
 
-const logFormat = winston.format.printf(({timestamp, level, message})=>{
-    return `${timestamp} [${level}] ${message}`
+const logFormat = winston.format.printf(({
+    timestamp,
+    level,
+    message,
+    ...metadata
+}) => {
+    const details = Object.keys(metadata).length
+        ? ` ${JSON.stringify(metadata)}`
+        : ''
+
+    return `${timestamp} [${level}] ${message}${details}`
 })
 
 
 const logger = winston.createLogger({
     levels: customLevels.levels,
     level: config.isProd ? config.loggerLvl : "debug",
-    format: winston.format.combine( 
-        winston.format.timestamp({format: "YYYY-MM-DD HH:mm:ss"}),
+    format: winston.format.combine(
+        winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
         logFormat
     ),
     transports: [
         new winston.transports.Console({
             format: winston.format.combine(
-                winston.format.colorize({all: true}),//si se saca el objeto solo colorea el nivel de criticidad
-                winston.format.timestamp({format: "YYYY-MM-DD HH:mm:ss"}),
+                winston.format.colorize({ all: true }),//si se saca el objeto solo colorea el nivel de criticidad
+                winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
                 logFormat
             )
         }),

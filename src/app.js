@@ -7,6 +7,8 @@ import mocksRouter from "./routes/mocks.router.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFoundHandler } from "./middlewares/notFoundHandler.js";
 import { httpLogger } from "./middlewares/httpLogger.js";
+import logger from "./config/logger.js"
+
 const app = express();
 
 app.use(cors());
@@ -18,6 +20,19 @@ app.get("/health", (req, res) => {
     message: "API funcionando"
   });
 });
+app.get("/api/logger-test", (req, res) => {
+  logger.debug("Prueba de nivel DEBUG")
+  logger.http("Prueba de nivel HTTP")
+  logger.info("Prueba de nivel INFO")
+  logger.warning("Prueba de nivel WARNING")
+  logger.error("Prueba de nivel ERROR")
+  logger.fatal("Prueba de nivel FATAL")
+
+  res.json({
+    status: "success",
+    message: "Se probaron todos los niveles de logging"
+  })
+})
 
 app.use("/api/users", usersRouter);
 app.use("/api/stores", storesRouter);

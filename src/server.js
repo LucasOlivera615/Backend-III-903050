@@ -13,12 +13,12 @@ const startServer = async () => {
       logger.info(`Servidor escuchando en el puerto ${PORT}`)
     });
   } catch (error) {
-   logger.fatal(`Error al iniciar el servidor: ${error.message}`, {
-      error,
-    });
+    logger.fatal(`Error al iniciar el servidor: ${error.message}`, {
+      stack: error.stack,
+    })
 
     process.exitCode = 1
- 
+
   }
 };
 

@@ -1,9 +1,6 @@
 import { storeRepository } from '../repository/store.repository.js';
 import { userRepository } from '../repository/user.repository.js';
 
-import { createError } from '../utils/apiResponse.js';
-import { ERROR_CODES } from '../utils/errorDictionary.js';
-
 export const storeService = {
   getStores: async () => {
     return storeRepository.findAll();
@@ -13,7 +10,9 @@ export const storeService = {
     const store = await storeRepository.findById(id);
 
     if (!store) {
-      throw createError(ERROR_CODES.STORE_NOT_FOUND);
+      const error = new Error('Comercio no encontrado');
+      error.statusCode = 404;
+      throw error;
     }
 
     return store;
@@ -23,17 +22,23 @@ export const storeService = {
     const { name, address, owner } = storeData;
 
     if (!name || !address || !owner) {
-      throw createError(ERROR_CODES.VALIDATION_ERROR);
+      const error = new Error('Faltan datos obligatorios');
+      error.statusCode = 400;
+      throw error;
     }
 
     const ownerFound = await userRepository.findById(owner);
 
     if (!ownerFound) {
-      throw createError(ERROR_CODES.USER_NOT_FOUND, 'Usuario propietario no encontrado');
+      const error = new Error('Usuario propietario no encontrado');
+      error.statusCode = 404;
+      throw error;
     }
 
     if (ownerFound.role !== 'store') {
-      throw createError(ERROR_CODES.INVALID_USER_ROLE, 'El propietario debe tener rol store');
+      const error = new Error('El propietario debe tener rol store');
+      error.statusCode = 400;
+      throw error;
     }
 
     return storeRepository.create(storeData);
@@ -43,7 +48,9 @@ export const storeService = {
     const store = await storeRepository.update(id, storeData);
 
     if (!store) {
-      throw createError(ERROR_CODES.STORE_NOT_FOUND);
+      const error = new Error('Comercio no encontrado');
+      error.statusCode = 404;
+      throw error;
     }
 
     return store;
@@ -53,7 +60,9 @@ export const storeService = {
     const store = await storeRepository.delete(id);
 
     if (!store) {
-      throw createError(ERROR_CODES.STORE_NOT_FOUND);
+      const error = new Error('Comercio no encontrado');
+      error.statusCode = 404;
+      throw error;
     }
 
     return store;

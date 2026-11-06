@@ -7,15 +7,15 @@ import {
 import { orderRepository } from '../repository/order.repository.js';
 import { storeRepository } from '../repository/store.repository.js';
 import { userRepository } from '../repository/user.repository.js';
-
-import { createError } from '../utils/apiResponse.js';
-import { ERROR_CODES } from '../utils/errorDictionary.js';
+import logger from '../config/logger.js';
 
 const validateQuantity = (quantity, name) => {
   const parsed = Number(quantity);
   if (!Number.isInteger(parsed) || parsed < 0 || parsed > 400) {
-    throw createError(ERROR_CODES.INVALID_MOCK_AMOUNT,
-      name + ' debe ser un entero entre 0 y 400');
+    logger.warning(`Cantidad inválida recibida: ${name}=${quantity}`);
+    const error = new Error(name + ' debe ser un entero entre 0 y 400');
+    error.statusCode = 400;
+    throw error;
   }
   return parsed;
 };
@@ -43,8 +43,9 @@ export const generateData = async ({ users = 10, stores = 5, orders = 10 } = {})
   orders = validateQuantity(orders, 'orders');
 
   if (orders > 0 && (users === 0 || stores === 0)) {
-    throw createError(ERROR_CODES.INVALID_MOCK_AMOUNT,
-      'Para generar pedidos se necesita al menos un customer y un store');
+    const error = new Error('Para generar pedidos se necesita al menos un customer y un store');
+    error.statusCode = 400;
+    throw error;
   }
 
   const result = {
@@ -89,5 +90,6 @@ export const generateData = async ({ users = 10, stores = 5, orders = 10 } = {})
     result.orders = createdOrders.length;
   }
 
+  logger.info(`Datos mock generados: users=${result.users} stores=${result.stores} orders=${result.orders}`);
   return result;
 };

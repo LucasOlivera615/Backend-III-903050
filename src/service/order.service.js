@@ -1,10 +1,7 @@
 import { orderRepository } from '../repository/order.repository.js';
 import { userRepository } from '../repository/user.repository.js';
 import { storeRepository } from '../repository/store.repository.js';
-
-import { createError } from '../utils/apiResponse.js';
-import { ERROR_CODES } from '../utils/errorDictionary.js';
-import { ORDER_STATUS, USER_ROLES } from '../utils/constants.js';
+import logger from '../config/logger.js';
 
 export const orderService = {
   getOrders: async () => {
@@ -15,7 +12,9 @@ export const orderService = {
     const order = await orderRepository.findById(id);
 
     if (!order) {
-      throw createError(ERROR_CODES.ORDER_NOT_FOUND);
+      const error = new Error('Pedido no encontrado');
+      error.statusCode = 404;
+      throw error;
     }
 
     return order;
@@ -24,32 +23,24 @@ export const orderService = {
   createOrder: async (orderData) => {
     const { customer, store, items, deliveryAddress, priority } = orderData;
 
-    if (!customer || !store || !deliveryAddress ||
-        !Array.isArray(items) || items.length === 0) {
-      throw createError(ERROR_CODES.VALIDATION_ERROR);
-    }
-
-    for (const item of items) {
-      if (!item || !Number.isFinite(item.quantity) || item.quantity <= 0 ||
-          !Number.isFinite(item.price) || item.price < 0) {
-        throw createError(ERROR_CODES.VALIDATION_ERROR,
-          'Cada item debe tener cantidad mayor que cero y precio no negativo');
-      }
+    if (!customer || !store || !items || !deliveryAddress) {
+      const error = new Error('Faltan datos obligatorios');
+      error.statusCode = 400;
+      throw error;
     }
 
     const userFound = await userRepository.findById(customer);
     if (!userFound) {
-      throw createError(ERROR_CODES.USER_NOT_FOUND);
-    }
-
-    if (userFound.role !== USER_ROLES.CUSTOMER) {
-      throw createError(ERROR_CODES.INVALID_USER_ROLE,
-        'El cliente debe tener rol customer');
+      const error = new Error('Usuario no encontrado');
+      error.statusCode = 404;
+      throw error;
     }
 
     const storeFound = await storeRepository.findById(store);
     if (!storeFound) {
-      throw createError(ERROR_CODES.STORE_NOT_FOUND);
+      const error = new Error('Tienda no encontrado');
+      error.statusCode = 404;
+      throw error;
     }
 
     const total = items.reduce((accumulator, item) => accumulator + item.price * item.quantity, 0);
@@ -61,17 +52,17 @@ export const orderService = {
       priority: priority ? priority : 'normal',
     };
 
-    return orderRepository.create(newOrder);
+    const created = await orderRepository.create(newOrder);
+    logger.info(`Pedido creado correctamente: ${created._id}`);
+    return created;
   },
 
   updateOrderStatus: async (id, status) => {
-    if (!Object.values(ORDER_STATUS).includes(status)) {
-      throw createError(ERROR_CODES.INVALID_ORDER_STATUS);
-    }
-
     const order = await orderRepository.updateStatus(id, status);
     if (!order) {
-      throw createError(ERROR_CODES.ORDER_NOT_FOUND);
+      const error = new Error('Pedido no encontrado');
+      error.statusCode = 404;
+      throw error;
     }
 
     return order;
@@ -80,7 +71,9 @@ export const orderService = {
   deleteOrder: async (id) => {
     const order = await orderRepository.delete(id);
     if (!order) {
-      throw createError(ERROR_CODES.ORDER_NOT_FOUND);
+      const error = new Error('Pedido no encontrado');
+      error.statusCode = 404;
+      throw error;
     }
 
     return order;

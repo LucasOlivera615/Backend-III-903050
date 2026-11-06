@@ -7,6 +7,7 @@ import mocksRouter from "./routes/mocks.router.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFoundHandler } from "./middlewares/notFoundHandler.js";
 import { httpLogger } from "./middlewares/httpLogger.js";
+import logger from "./config/logger.js";
 import swaggerSpec from "./config/swagger.js";
 import swaggerUi from "swagger-ui-express";
 
@@ -14,11 +15,26 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(httpLogger)
+app.use(httpLogger);
+
 app.get("/health", (req, res) => {
   res.json({
     status: "success",
     message: "API funcionando"
+  });
+});
+
+app.get("/loggerTest", (req, res) => {
+  logger.debug("Log de nivel debug");
+  logger.http("Log de nivel http");
+  logger.info("Log de nivel info");
+  logger.warning("Log de nivel warning");
+  logger.error("Log de nivel error");
+  logger.fatal("Log de nivel fatal");
+
+  res.json({
+    status: "success",
+    message: "Logs generados correctamente"
   });
 });
 

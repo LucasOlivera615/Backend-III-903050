@@ -1,47 +1,46 @@
 import { storeService } from '../service/store.service.js';
-import { successResponse } from '../utils/apiResponse.js';
 
-export const getStores = async (req, res, next) => {
+export const getStores = async (req, res) => {
   try {
     const stores = await storeService.getStores();
-    successResponse(res, { message: 'Lista de comercios', payload: stores });
+    res.json({ status: 'success', payload: stores });
   } catch (error) {
-    next(error);
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
-export const getStoreById = async (req, res, next) => {
+export const getStoreById = async (req, res) => {
   try {
     const store = await storeService.getStoreById(req.params.sid);
-    successResponse(res, { message: 'Comercio obtenido', payload: store });
+    res.json({ status: 'success', payload: store });
   } catch (error) {
-    next(error);
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
-export const createStore = async (req, res, next) => {
+export const createStore = async (req, res) => {
   try {
     const store = await storeService.createStore(req.body);
-    successResponse(res, { statusCode: 201, message: 'Comercio creado', payload: store });
+    res.status(201).json({ status: 'success', payload: store });
   } catch (error) {
-    next(error);
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
-export const updateStore = async (req, res, next) => {
+export const updateStore = async (req, res) => {
   try {
     const store = await storeService.updateStore(req.params.sid, req.body);
-    successResponse(res, { message: 'Comercio actualizado', payload: store });
+    res.json({ status: 'success', payload: store });
   } catch (error) {
-    next(error);
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
-export const deleteStore = async (req, res, next) => {
+export const deleteStore = async (req, res) => {
   try {
     const store = await storeService.deleteStore(req.params.sid);
-    successResponse(res, { message: 'Comercio eliminado', payload: store });
+    res.json({ status: 'success', payload: store });
   } catch (error) {
-    next(error);
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };

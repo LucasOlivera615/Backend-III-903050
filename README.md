@@ -1,13 +1,13 @@
 # ShipNow API
 
 API de logística construida con Node.js, Express y MongoDB. Gestiona usuarios,
-comercios y pedidos con arquitectura por capas, mocks para cargar datos de prueba
+tiendas y pedidos con arquitectura por capas, mocks para cargar datos de prueba
 y un manejo centralizado de errores.
 
 ## Entidades
 
 - `User`: usuario del sistema. Roles: `admin`, `customer` y `store`.
-- `Store`: comercio asociado a un usuario con rol `store`.
+- `Store`: tienda asociado a un usuario con rol `store`.
 - `Order`: pedido asociado a un `customer` y a un `store`.
 
 ## Requisitos
@@ -51,7 +51,8 @@ La API queda en `http://localhost:8080` si `PORT=8080`. Sin `PORT` usa `3000`.
 { "status": "success", "message": "usuario creado", "payload": {} }
 ```
 
-Algunos endpoints responden solo `{ "status": "success", "payload": {} }`.
+Los módulos de usuarios, tiendas, pedidos y mocks usan este formato normalizado.
+`GET /health` devuelve `status` y `message`.
 
 Error (middleware global):
 
@@ -59,7 +60,7 @@ Error (middleware global):
 { "status": "error", "message": "Usuario no encontrado", "code": "USER_NOT_FOUND" }
 ```
 
-Los controllers de users delegan el error con `next(error)`. El middleware
+Los controllers de usuarios, tiendas, pedidos y mocks delegan el error con `next(error)`. El middleware
 traduce `CastError` de Mongoose a `VALIDATION_ERROR` (`ID invalido`).
 
 ## Endpoints
@@ -156,6 +157,61 @@ Sin body: 10 customers, 5 stores (con su usuario `store`) y 10 orders.
 Las cantidades son enteros entre 0 y 400. Para generar pedidos hace falta
 al menos un customer y un store en la misma carga. El email lleva un UUID
 para poder repetir la carga.
+
+## Documentación con Swagger
+
+Instalar dependencias y levantar el servidor desde la raíz del proyecto:
+
+```bash
+npm install
+npm run dev
+```
+
+Abrir [Swagger UI](http://localhost:8080/api/docs/) si `PORT=8080`.
+Si usás otro puerto, reemplazar `8080` por el valor de `PORT`.
+El servidor de Swagger toma el puerto de `src/config/index.js`.
+
+La configuración está en `src/config/swagger.js` y toda la documentación
+en `src/docs/swagger.yaml`. Se documentan Users, Stores, Orders y Mocks,
+con schemas de entrada, salida y errores. El comando de desarrollo observa
+cambios de JavaScript, JSON y YAML y reinicia el servidor automáticamente.
+
+### Probar los ejemplos
+
+Los IDs y emails de Swagger son ilustrativos: los IDs no se crean por abrir
+la documentación. Reemplazarlos por datos de tu base antes de ejecutar.
+`Try it out` envía peticiones reales y puede crear, actualizar o eliminar datos.
+
+1. Ejecutar `POST /api/mocks/generateData` con
+   `{ "users": 2, "stores": 1, "orders": 2 }`.
+   Guarda 3 usuarios (2 clientes y 1 propietario), 1 tienda y 2 pedidos.
+2. Consultar `GET /api/users` y copiar el `_id` de un usuario con rol `customer`.
+3. Consultar `GET /api/stores` y copiar el `_id` de la tienda.
+   No confundir ese ID con `owner`, que identifica a su propietario.
+4. Reemplazar `customer` y `store` en el ejemplo de `POST /api/orders`.
+5. Copiar el `_id` del pedido creado para consultar, actualizar su estado o eliminarlo.
+
+Para crear una tienda manualmente, crear primero un usuario con rol `store`
+y usar su ID como `owner`. Para crear usuarios nuevos, cambiar el email de ejemplo.
+
+`GET /api/mocks/mockingusers` y `GET /api/mocks/mockingorders` generan datos
+en memoria: sus IDs no representan registros persistidos. Admiten `qty`
+entre 0 y 400; el valor predeterminado es 10. `generateData` tiene body opcional
+y usa 10 clientes, 5 tiendas y 10 pedidos si no se indican cantidades.
+
+### Interpretar las respuestas
+
+- Los GET de pedidos devuelven `customer` y `store` como objetos poblados.
+  Pueden ser `null` si se eliminaron las entidades relacionadas.
+- Crear, actualizar el estado o eliminar un pedido devuelve esas relaciones como IDs.
+- Un ID mal formado responde `400` con `VALIDATION_ERROR`.
+  Un ID válido sin registro responde `404` con el código del recurso.
+- Los estados admitidos están en el `enum` de `OrderStatusInput`.
+  No se impone una secuencia de transiciones entre ellos.
+- Algunas validaciones de Mongoose y los emails duplicados todavía responden
+  `500`. Swagger describe ese comportamiento actual; no se documentan como `409`.
+- `required`, los límites y los ejemplos del YAML describen el contrato.
+  Las validaciones de Express y Mongoose son las que deciden si se acepta la petición.
 
 ## Arquitectura
 

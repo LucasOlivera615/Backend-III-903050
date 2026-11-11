@@ -4,7 +4,7 @@ import { successResponse } from '../utils/apiResponse.js';
 export const getStores = async (req, res, next) => {
   try {
     const stores = await storeService.getStores();
-    successResponse(res, { message: 'Lista de comercios', payload: stores });
+    successResponse(res, { message: 'Lista de tiendas', payload: stores });
   } catch (error) {
     next(error);
   }
@@ -13,7 +13,7 @@ export const getStores = async (req, res, next) => {
 export const getStoreById = async (req, res, next) => {
   try {
     const store = await storeService.getStoreById(req.params.sid);
-    successResponse(res, { message: 'Comercio obtenido', payload: store });
+    successResponse(res, { message: 'Tienda obtenida', payload: store });
   } catch (error) {
     next(error);
   }
@@ -22,7 +22,7 @@ export const getStoreById = async (req, res, next) => {
 export const createStore = async (req, res, next) => {
   try {
     const store = await storeService.createStore(req.body);
-    successResponse(res, { statusCode: 201, message: 'Comercio creado', payload: store });
+    successResponse(res, { statusCode: 201, message: 'Tienda creada', payload: store });
   } catch (error) {
     next(error);
   }
@@ -31,7 +31,7 @@ export const createStore = async (req, res, next) => {
 export const updateStore = async (req, res, next) => {
   try {
     const store = await storeService.updateStore(req.params.sid, req.body);
-    successResponse(res, { message: 'Comercio actualizado', payload: store });
+    successResponse(res, { message: 'Tienda actualizada', payload: store });
   } catch (error) {
     next(error);
   }
@@ -40,7 +40,7 @@ export const updateStore = async (req, res, next) => {
 export const deleteStore = async (req, res, next) => {
   try {
     const store = await storeService.deleteStore(req.params.sid);
-    successResponse(res, { message: 'Comercio eliminado', payload: store });
+    successResponse(res, { message: 'Tienda eliminada', payload: store });
   } catch (error) {
     next(error);
   }

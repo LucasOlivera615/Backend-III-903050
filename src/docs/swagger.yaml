@@ -1,30 +1,85 @@
 tags:
   - name: Orders
-    description: Géstion de pedidos
-
+    description: Gestión de pedidos
+  - name: Users
+    description: Gestión de usuarios
+  - name: Stores
+    description: Gestión de tiendas
+  - name: Mocks
+    description: Generación de datos ficticios en memoria o MongoDB
 paths:
   /api/orders:
     get:
       tags: [Orders]
       summary: Listar pedidos
-      description: Devuelve los pedidos registrados
+      description: Devuelve los pedidos con su cliente y tienda pobladas.
       responses:
         "200":
-          description: Lista de pedidos obtenido
+          description: Lista de pedidos
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrdersResponse"
+              example:
+                status: success
+                message: Lista de pedidos
+                payload:
+                  - _id: 6acf7ff968b188fed334690d
+                    customer:
+                      _id: 6acf7ff968b188fed334690c
+                      firstName: Ana
+                      lastName: Gomez
+                      email: ana@example.com
+                      password: clave-de-prueba
+                      role: customer
+                      documents: []
+                    store:
+                      _id: 6acf7ff968b188fed334690b
+                      name: Tienda Centro
+                      address: Av. Siempre Viva 100
+                      owner: 6acf7ff968b188fed334690a
+                      isActive: true
+                    items:
+                      - name: Caja mediana
+                        quantity: 2
+                        price: 1500
+                    deliveryAddress: Calle falsa 123
+                    total: 3000
+                    status: created
+                    priority: normal
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
     post:
       tags: [Orders]
       summary: Crear un pedido
-      description: Require cliente y tienda existente
+      description: >-
+        Requiere un cliente con rol customer y una tienda existentes. El servidor calcula total y
+        fija status en created. Los IDs de ejemplo deben reemplazarse.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/OrderInput"
+            example:
+              customer: 6acf7ff968b188fed334690c
+              store: 6acf7ff968b188fed334690b
+              deliveryAddress: Calle falsa 123
+              items:
+                - name: Caja mediana
+                  quantity: 2
+                  price: 1500
+              priority: normal
       responses:
         "201":
           description: Pedido creado
@@ -32,101 +87,1365 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrderResponse"
-        "404":
-          description: Cliente o tienda no encontrada
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: success
+                message: Pedido creado
+                payload:
+                  _id: 6acf7ff968b188fed334690d
+                  customer: 6acf7ff968b188fed334690c
+                  store: 6acf7ff968b188fed334690b
+                  items:
+                    - name: Caja mediana
+                      quantity: 2
+                      price: 1500
+                  deliveryAddress: Calle falsa 123
+                  total: 3000
+                  status: created
+                  priority: normal
         "400":
-          description: Datos, rol del cliente o ID invalidos
+          description: >-
+            Datos o ID inválidos, items vacíos, cantidad o precio inválido, o rol de cliente
+            incorrecto.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
+              example:
+                status: error
+                message: Faltan datos obligatorios
+                code: VALIDATION_ERROR
+        "404":
+          description: Cliente o tienda no encontrados. También puede devolver STORE_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Usuario no encontrado
+                code: USER_NOT_FOUND
+        "500":
+          description: Error interno o validación de Mongoose no normalizada, como una prioridad desconocida.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
   /api/orders/{oid}:
+    parameters:
+      - in: path
+        name: oid
+        required: true
+        description: ID de un pedido existente. Reemplazar por un ID de tu base.
+        schema:
+          type: string
+        example: 6acf7ff968b188fed334690d
     get:
       tags: [Orders]
-      summary: Obtener un pedido
-      description: Devuelve un pedido del ID indicado
-      parameters:
-        - in: path
-          name: oid
-          required: true
-          description: ID del pedido que queremos consultar
-          schema:
-            type: string
+      summary: Obtener un pedido por ID
       responses:
         "200":
-          description: Pedido encontrado correctamente
-        "404":
-          description: No existe un pedido con ese ID
+          description: Pedido obtenido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderReadResponse"
+              example:
+                status: success
+                message: Pedido obtenido
+                payload:
+                  _id: 6acf7ff968b188fed334690d
+                  customer:
+                    _id: 6acf7ff968b188fed334690c
+                    firstName: Ana
+                    lastName: Gomez
+                    email: ana@example.com
+                    password: clave-de-prueba
+                    role: customer
+                    documents: []
+                  store:
+                    _id: 6acf7ff968b188fed334690b
+                    name: Tienda Centro
+                    address: Av. Siempre Viva 100
+                    owner: 6acf7ff968b188fed334690a
+                    isActive: true
+                  items:
+                    - name: Caja mediana
+                      quantity: 2
+                      price: 1500
+                  deliveryAddress: Calle falsa 123
+                  total: 3000
+                  status: created
+                  priority: normal
         "400":
-          description: El ID no tiene el formato correcto
-
+          description: El ID no tiene el formato correcto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: ID invalido
+                code: VALIDATION_ERROR
+        "404":
+          description: Pedido no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Pedido no encontrado
+                code: ORDER_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+    delete:
+      tags: [Orders]
+      summary: Eliminar un pedido
+      description: Elimina el pedido y devuelve el documento eliminado, con sus relaciones como IDs.
+      responses:
+        "200":
+          description: Pedido eliminado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+              example:
+                status: success
+                message: Pedido eliminado
+                payload:
+                  _id: 6acf7ff968b188fed334690d
+                  customer: 6acf7ff968b188fed334690c
+                  store: 6acf7ff968b188fed334690b
+                  items:
+                    - name: Caja mediana
+                      quantity: 2
+                      price: 1500
+                  deliveryAddress: Calle falsa 123
+                  total: 3000
+                  status: created
+                  priority: normal
+        "400":
+          description: El ID no tiene el formato correcto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: ID invalido
+                code: VALIDATION_ERROR
+        "404":
+          description: Pedido no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Pedido no encontrado
+                code: ORDER_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+  /api/orders/{oid}/status:
+    parameters:
+      - in: path
+        name: oid
+        required: true
+        description: ID del pedido a actualizar.
+        schema:
+          type: string
+        example: 6acf7ff968b188fed334690d
+    put:
+      tags: [Orders]
+      summary: Actualizar el estado del pedido
+      description: Valida que el estado exista. El proyecto no impone una secuencia de transiciones.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderStatusInput"
+            example:
+              status: assigned
+      responses:
+        "200":
+          description: Estado del pedido actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+              example:
+                status: success
+                message: Estado del pedido actualizado
+                payload:
+                  _id: 6acf7ff968b188fed334690d
+                  customer: 6acf7ff968b188fed334690c
+                  store: 6acf7ff968b188fed334690b
+                  items:
+                    - name: Caja mediana
+                      quantity: 2
+                      price: 1500
+                  deliveryAddress: Calle falsa 123
+                  total: 3000
+                  status: assigned
+                  priority: normal
+        "400":
+          description: Estado inválido o ID con formato incorrecto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Estado de pedido invalido
+                code: INVALID_ORDER_STATUS
+        "404":
+          description: Pedido no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Pedido no encontrado
+                code: ORDER_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Listar usuarios
+      responses:
+        "200":
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersResponse"
+              example:
+                status: success
+                message: Lista de usuarios
+                payload:
+                  - _id: 6acf7ff968b188fed334690c
+                    firstName: Ana
+                    lastName: Gomez
+                    email: ana@example.com
+                    password: clave-de-prueba
+                    role: customer
+                    documents: []
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+    post:
+      tags: [Users]
+      summary: Crear un usuario
+      description: >-
+        role es opcional y su valor predeterminado es customer. Usar un email nuevo para cada
+        creación.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+            example:
+              firstName: Ana
+              lastName: Gomez
+              email: ana@example.com
+              password: clave-de-prueba
+              role: customer
+      responses:
+        "201":
+          description: usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+              example:
+                status: success
+                message: usuario creado
+                payload:
+                  _id: 6acf7ff968b188fed334690c
+                  firstName: Ana
+                  lastName: Gomez
+                  email: ana@example.com
+                  password: clave-de-prueba
+                  role: customer
+                  documents: []
+        "400":
+          description: Faltan campos obligatorios o el rol no es válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Faltan datos obligatorios
+                code: VALIDATION_ERROR
+        "500":
+          description: >-
+            Error interno. Actualmente los emails duplicados y algunas validaciones de Mongoose
+            también responden 500.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+  /api/users/{uid}:
+    parameters:
+      - in: path
+        name: uid
+        required: true
+        description: ID del usuario.
+        schema:
+          type: string
+        example: 6acf7ff968b188fed334690c
+    get:
+      tags: [Users]
+      summary: Obtener un usuario por ID
+      responses:
+        "200":
+          description: usuario obtenido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+              example:
+                status: success
+                message: usuario obtenido
+                payload:
+                  _id: 6acf7ff968b188fed334690c
+                  firstName: Ana
+                  lastName: Gomez
+                  email: ana@example.com
+                  password: clave-de-prueba
+                  role: customer
+                  documents: []
+        "400":
+          description: El ID no tiene el formato correcto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: ID invalido
+                code: VALIDATION_ERROR
+        "404":
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Usuario no encontrado
+                code: USER_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+    put:
+      tags: [Users]
+      summary: Actualizar un usuario
+      description: >-
+        Enviar los campos que se quieren modificar. Un rol inválido se rechaza actualmente por
+        Mongoose con 500.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdateInput"
+            example:
+              firstName: Ana Maria
+      responses:
+        "200":
+          description: usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+              example:
+                status: success
+                message: usuario actualizado
+                payload:
+                  _id: 6acf7ff968b188fed334690c
+                  firstName: Ana Maria
+                  lastName: Gomez
+                  email: ana@example.com
+                  password: clave-de-prueba
+                  role: customer
+                  documents: []
+        "400":
+          description: El ID no tiene el formato correcto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: ID invalido
+                code: VALIDATION_ERROR
+        "404":
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Usuario no encontrado
+                code: USER_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+    delete:
+      tags: [Users]
+      summary: Eliminar un usuario
+      description: Devuelve el usuario eliminado. No elimina automáticamente sus pedidos o tiendas.
+      responses:
+        "200":
+          description: usuario eliminado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+              example:
+                status: success
+                message: usuario eliminado
+                payload:
+                  _id: 6acf7ff968b188fed334690c
+                  firstName: Ana
+                  lastName: Gomez
+                  email: ana@example.com
+                  password: clave-de-prueba
+                  role: customer
+                  documents: []
+        "400":
+          description: El ID no tiene el formato correcto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: ID invalido
+                code: VALIDATION_ERROR
+        "404":
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Usuario no encontrado
+                code: USER_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+  /api/stores:
+    get:
+      tags: [Stores]
+      summary: Listar tiendas
+      responses:
+        "200":
+          description: Lista de tiendas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoresResponse"
+              example:
+                status: success
+                message: Lista de tiendas
+                payload:
+                  - _id: 6acf7ff968b188fed334690b
+                    name: Tienda Centro
+                    address: Av. Siempre Viva 100
+                    owner: 6acf7ff968b188fed334690a
+                    isActive: true
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+    post:
+      tags: [Stores]
+      summary: Crear una tienda
+      description: owner debe ser el ID de un usuario existente cuyo rol sea store.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreInput"
+            example:
+              name: Tienda Centro
+              address: Av. Siempre Viva 100
+              owner: 6acf7ff968b188fed334690a
+      responses:
+        "201":
+          description: Tienda creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+              example:
+                status: success
+                message: Tienda creada
+                payload:
+                  _id: 6acf7ff968b188fed334690b
+                  name: Tienda Centro
+                  address: Av. Siempre Viva 100
+                  owner: 6acf7ff968b188fed334690a
+                  isActive: true
+        "400":
+          description: Faltan datos, el ID es inválido o el propietario no tiene rol store.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: El propietario debe tener rol store
+                code: INVALID_USER_ROLE
+        "404":
+          description: Usuario propietario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Usuario propietario no encontrado
+                code: USER_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+  /api/stores/{sid}:
+    parameters:
+      - in: path
+        name: sid
+        required: true
+        description: ID de la tienda; no confundir con el ID de su propietario.
+        schema:
+          type: string
+        example: 6acf7ff968b188fed334690b
+    get:
+      tags: [Stores]
+      summary: Obtener una tienda por ID
+      responses:
+        "200":
+          description: Tienda obtenida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+              example:
+                status: success
+                message: Tienda obtenida
+                payload:
+                  _id: 6acf7ff968b188fed334690b
+                  name: Tienda Centro
+                  address: Av. Siempre Viva 100
+                  owner: 6acf7ff968b188fed334690a
+                  isActive: true
+        "400":
+          description: El ID no tiene el formato correcto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: ID invalido
+                code: VALIDATION_ERROR
+        "404":
+          description: Tienda no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Tienda no encontrada
+                code: STORE_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+    put:
+      tags: [Stores]
+      summary: Actualizar una tienda
+      description: >-
+        Enviar solo los campos que se quieren modificar. No vuelve a validar la existencia ni el rol
+        de owner.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreUpdateInput"
+            example:
+              address: Av. Siempre Viva 200
+      responses:
+        "200":
+          description: Tienda actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+              example:
+                status: success
+                message: Tienda actualizada
+                payload:
+                  _id: 6acf7ff968b188fed334690b
+                  name: Tienda Centro
+                  address: Av. Siempre Viva 200
+                  owner: 6acf7ff968b188fed334690a
+                  isActive: true
+        "400":
+          description: El ID no tiene el formato correcto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: ID invalido
+                code: VALIDATION_ERROR
+        "404":
+          description: Tienda no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Tienda no encontrada
+                code: STORE_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+    delete:
+      tags: [Stores]
+      summary: Eliminar una tienda
+      description: Devuelve la tienda eliminada. No elimina automáticamente los pedidos asociados.
+      responses:
+        "200":
+          description: Tienda eliminada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+              example:
+                status: success
+                message: Tienda eliminada
+                payload:
+                  _id: 6acf7ff968b188fed334690b
+                  name: Tienda Centro
+                  address: Av. Siempre Viva 100
+                  owner: 6acf7ff968b188fed334690a
+                  isActive: true
+        "400":
+          description: El ID no tiene el formato correcto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: ID invalido
+                code: VALIDATION_ERROR
+        "404":
+          description: Tienda no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Tienda no encontrada
+                code: STORE_NOT_FOUND
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+  /api/mocks/mockingusers:
+    get:
+      tags: [Mocks]
+      summary: Generar usuarios sin guardarlos
+      description: Devuelve usuarios ficticios con nuevos IDs y emails. No los inserta en MongoDB.
+      parameters:
+        - in: query
+          name: qty
+          required: false
+          description: Cantidad a generar en memoria. Si no se envía, se generan 10.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 400
+            default: 10
+          example: 3
+      responses:
+        "200":
+          description: Usuarios mock generados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MockUsersResponse"
+              example:
+                status: success
+                message: Usuarios mock generados
+                payload:
+                  - _id: 6acf7ff968b188fed3346911
+                    firstName: Usuario1
+                    lastName: Demo1
+                    email: user1.c7453c70-e177-4c79-97a3-79c38a6012b1@test.com
+                    password: coder123
+                    role: customer
+                  - _id: 6acf7ff968b188fed3346912
+                    firstName: Usuario2
+                    lastName: Demo2
+                    email: user2.c7453c70-e177-4c79-97a3-79c38a6012b2@test.com
+                    password: coder123
+                    role: customer
+                  - _id: 6acf7ff968b188fed3346913
+                    firstName: Usuario3
+                    lastName: Demo3
+                    email: user3.c7453c70-e177-4c79-97a3-79c38a6012b3@test.com
+                    password: coder123
+                    role: customer
+        "400":
+          description: Cantidad fuera del rango 0 a 400 o no entera.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: qty debe ser un entero entre 0 y 400
+                code: INVALID_MOCK_AMOUNT
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+  /api/mocks/mockingorders:
+    get:
+      tags: [Mocks]
+      summary: Generar pedidos sin guardarlos
+      description: >-
+        Genera pedidos y relaciones ficticias en memoria. Los IDs relacionados no se guardan en
+        MongoDB y no deben usarse como relaciones de un POST real.
+      parameters:
+        - in: query
+          name: qty
+          required: false
+          description: Cantidad a generar en memoria. Si no se envía, se generan 10.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 400
+            default: 10
+          example: 3
+      responses:
+        "200":
+          description: Pedidos mock generados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MockOrdersResponse"
+              example:
+                status: success
+                message: Pedidos mock generados
+                payload:
+                  - _id: 6acf7ff968b188fed3346921
+                    customer: 6acf7ff968b188fed3346911
+                    store: 6acf7ff968b188fed334690b
+                    items:
+                      - name: Paquete 1
+                        quantity: 1
+                        price: 1500
+                    deliveryAddress: Av. Siempre Viva 101
+                    total: 1500
+                    status: created
+                    priority: normal
+                  - _id: 6acf7ff968b188fed3346922
+                    customer: 6acf7ff968b188fed3346912
+                    store: 6acf7ff968b188fed334690b
+                    items:
+                      - name: Paquete 2
+                        quantity: 1
+                        price: 1500
+                    deliveryAddress: Av. Siempre Viva 102
+                    total: 1500
+                    status: created
+                    priority: normal
+                  - _id: 6acf7ff968b188fed3346923
+                    customer: 6acf7ff968b188fed3346913
+                    store: 6acf7ff968b188fed334690b
+                    items:
+                      - name: Paquete 3
+                        quantity: 1
+                        price: 1500
+                    deliveryAddress: Av. Siempre Viva 103
+                    total: 1500
+                    status: created
+                    priority: normal
+        "400":
+          description: Cantidad fuera del rango 0 a 400 o no entera.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: qty debe ser un entero entre 0 y 400
+                code: INVALID_MOCK_AMOUNT
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
+  /api/mocks/generateData:
+    post:
+      tags: [Mocks]
+      summary: Guardar datos ficticios en MongoDB
+      description: >-
+        Body opcional. Por defecto: users=10, stores=5 y orders=10. Cada cantidad debe estar entre 0
+        y 400. Si orders es mayor que cero, users y stores también deben ser mayores que cero en
+        esta carga. Se crea un propietario por tienda; el contador users suma clientes y
+        propietarios. Los IDs son nuevos en cada ejecución.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MockDataInput"
+            example:
+              users: 2
+              stores: 1
+              orders: 2
+      responses:
+        "201":
+          description: Datos mock generados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MockDataResponse"
+              example:
+                status: success
+                message: Datos mock generados
+                payload:
+                  users: 3
+                  stores: 1
+                  orders: 2
+        "400":
+          description: Cantidad inválida o se solicitan pedidos sin clientes o tiendas.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Para generar pedidos se necesita al menos un customer y un store
+                code: INVALID_MOCK_AMOUNT
+        "500":
+          description: >-
+            Error interno del servidor o de persistencia. El mensaje y el código dependen de la
+            causa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
+              example:
+                status: error
+                message: Error interno en el servidor
+                code: INTERNAL_SERVER_ERROR
 components:
   schemas:
     OrderItem:
       type: object
+      required: [name, quantity, price]
       properties:
         name:
           type: string
           example: Caja mediana
         quantity:
           type: number
+          minimum: 0
+          exclusiveMinimum: true
+          description: Cantidad mayor que cero.
           example: 2
         price:
           type: number
+          minimum: 0
+          description: Precio por unidad. Puede ser cero.
           example: 1500
-      required: [name, quantity, price]
-    Customer:
+    User:
       type: object
+      required: [_id, firstName, lastName, email, role]
       properties:
         _id:
           type: string
+          example: 6acf7ff968b188fed334690c
         firstName:
           type: string
+          example: Ana
         lastName:
           type: string
+          example: Gomez
         email:
           type: string
+          example: ana@example.com
+        password:
+          type: string
+          example: clave-de-prueba
         role:
           type: string
+          enum: [admin, customer, store]
+          example: customer
+        documents:
+          type: array
+          items: {}
+          example: []
+    UserInput:
+      type: object
+      required: [firstName, lastName, email, password]
+      properties:
+        firstName:
+          type: string
+          example: Ana
+        lastName:
+          type: string
+          example: Gomez
+        email:
+          type: string
+          example: ana@example.com
+        password:
+          type: string
+          example: clave-de-prueba
+        role:
+          type: string
+          enum: [admin, customer, store]
+          default: customer
+          example: customer
     Store:
       type: object
+      required: [_id, name, address, owner]
       properties:
         _id:
           type: string
+          example: 6acf7ff968b188fed334690b
         name:
           type: string
+          example: Tienda Centro
         address:
           type: string
+          example: Av. Siempre Viva 100
         owner:
           type: string
-    OrderRead:
+          description: ID del usuario propietario; no es el ID de la tienda.
+          example: 6acf7ff968b188fed334690a
+        isActive:
+          type: boolean
+          example: true
+    StoreInput:
       type: object
+      required: [name, address, owner]
       properties:
-        _id:
+        name:
           type: string
+          example: Tienda Centro
+        address:
+          type: string
+          example: Av. Siempre Viva 100
+        owner:
+          type: string
+          description: ID de un usuario existente con rol store.
+          example: 6acf7ff968b188fed334690a
+    OrderInput:
+      type: object
+      required: [customer, store, items, deliveryAddress]
+      properties:
         customer:
-          $ref: "#/components/schemas/Customer"
+          type: string
+          description: ID de un usuario existente con rol customer. Reemplazar por un ID de tu base.
+          example: 6acf7ff968b188fed334690c
         store:
-          $ref: "#/components/schemas/Store"
+          type: string
+          description: ID de una tienda existente. Reemplazar por un ID de tu base.
+          example: 6acf7ff968b188fed334690b
+        deliveryAddress:
+          type: string
+          example: Calle falsa 123
         items:
           type: array
           items:
             $ref: "#/components/schemas/OrderItem"
-        deliverAddress:
-          type: string
-        total:
-          type: number
-        status:
-          type: string
+          minItems: 1
         priority:
           type: string
+          enum: [low, normal, high]
+          default: normal
+          example: normal
+    OrderStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+          example: assigned
+    MockDataInput:
+      type: object
+      properties:
+        users:
+          type: integer
+          minimum: 0
+          maximum: 400
+          default: 10
+          example: 2
+          description: Cantidad de clientes.
+        stores:
+          type: integer
+          minimum: 0
+          maximum: 400
+          default: 5
+          example: 1
+          description: Cantidad de tiendas. Se crea un propietario por tienda.
+        orders:
+          type: integer
+          minimum: 0
+          maximum: 400
+          default: 10
+          example: 2
+          description: Para crear pedidos, users y stores deben ser mayores que cero.
+    MockDataResult:
+      type: object
+      required: [users, stores, orders]
+      properties:
+        users:
+          type: integer
+          example: 3
+          description: Total de clientes y propietarios creados.
+        stores:
+          type: integer
+          example: 1
+        orders:
+          type: integer
+          example: 2
+    ErrorResponse:
+      type: object
+      required: [status, message, code]
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Pedido no encontrado
+        code:
+          type: string
+          example: ORDER_NOT_FOUND
+    InternalErrorResponse:
+      type: object
+      required: [status, message, code]
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Error interno en el servidor
+        code:
+          description: Puede ser un texto o un código numérico de MongoDB, según el error original.
+          example: INTERNAL_SERVER_ERROR
+    UserUpdateInput:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: Ana
+        lastName:
+          type: string
+          example: Gomez
+        email:
+          type: string
+          example: ana@example.com
+        password:
+          type: string
+          example: clave-de-prueba
+        role:
+          type: string
+          enum: [admin, customer, store]
+          example: customer
+      description: Enviar solo los campos que se quieren actualizar. No se exigen todos los campos de creación.
+    StoreUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Tienda Centro
+        address:
+          type: string
+          example: Av. Siempre Viva 100
+        owner:
+          type: string
+          description: ID de un usuario existente con rol store.
+          example: 6acf7ff968b188fed334690a
+        isActive:
+          type: boolean
+          example: true
+      description: >-
+        Enviar solo los campos a actualizar. La actualización actual no vuelve a comprobar el rol
+        del propietario.
+    Customer:
+      type: object
+      required: [_id, firstName, lastName, email, role]
+      properties:
+        _id:
+          type: string
+          example: 6acf7ff968b188fed334690c
+        firstName:
+          type: string
+          example: Ana
+        lastName:
+          type: string
+          example: Gomez
+        email:
+          type: string
+          example: ana@example.com
+        password:
+          type: string
+          example: clave-de-prueba
+        role:
+          type: string
+          enum: [admin, customer, store]
+          example: customer
+        documents:
+          type: array
+          items: {}
+          example: []
+      nullable: true
+      description: Usuario poblado por las consultas de pedidos. Puede ser null si el usuario fue eliminado.
+    StoreRead:
+      type: object
+      required: [_id, name, address, owner]
+      properties:
+        _id:
+          type: string
+          example: 6acf7ff968b188fed334690b
+        name:
+          type: string
+          example: Tienda Centro
+        address:
+          type: string
+          example: Av. Siempre Viva 100
+        owner:
+          type: string
+          description: ID del usuario propietario; no es el ID de la tienda.
+          example: 6acf7ff968b188fed334690a
+        isActive:
+          type: boolean
+          example: true
+      nullable: true
+      description: Tienda poblada por las consultas de pedidos. Puede ser null si la tienda fue eliminada.
+    Order:
+      type: object
+      required: [_id, customer, store, items, deliveryAddress, total, status, priority]
+      properties:
+        _id:
+          type: string
+          example: 6acf7ff968b188fed334690d
+        customer:
+          type: string
+          example: 6acf7ff968b188fed334690c
+        store:
+          type: string
+          example: 6acf7ff968b188fed334690b
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        deliveryAddress:
+          type: string
+          example: Calle falsa 123
+        total:
+          type: number
+          description: Calculado por el servidor.
+          example: 3000
+        status:
+          type: string
+          enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+          example: created
+        priority:
+          type: string
+          enum: [low, normal, high]
+          example: normal
+    OrderRead:
+      type: object
+      required: [_id, customer, store, items, deliveryAddress, total, status, priority]
+      properties:
+        _id:
+          type: string
+          example: 6acf7ff968b188fed334690d
+        customer:
+          $ref: "#/components/schemas/Customer"
+        store:
+          $ref: "#/components/schemas/StoreRead"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        deliveryAddress:
+          type: string
+          example: Calle falsa 123
+        total:
+          type: number
+          description: Calculado por el servidor.
+          example: 3000
+        status:
+          type: string
+          enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+          example: created
+        priority:
+          type: string
+          enum: [low, normal, high]
+          example: normal
+      description: Pedido consultado con cliente y tienda pobladas.
     OrdersResponse:
       type: object
+      required: [status, message, payload]
       properties:
         status:
           type: string
@@ -138,52 +1457,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/OrderRead"
-    OrderInput:
-      type: object
-      properties:
-        customer:
-          type: string
-          description: ID de un usuario con rol customer
-          example: 6acf7ff968b188fed334690c
-        store:
-          type: string
-          description: ID de una tienda existente
-          example: 6acf7ff968b188fed334690b
-        deliveryAddress:
-          type: string
-          example: Calle falsa 123
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/OrderItem"
-        priority:
-          type: string
-          enum: [low, normal, high]
-          default: normal
-      required: [customer, store, items, deliveryAddress]
-    Order:
-      type: object
-      properties:
-        _id:
-          type: string
-        customer:
-          type: string
-        store:
-          type: string
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/OrderItem"
-        deliverAddress:
-          type: string
-        total:
-          type: number
-        status:
-          type: string
-        priority:
-          type: string
     OrderResponse:
       type: object
+      required: [status, message, payload]
       properties:
         status:
           type: string
@@ -193,15 +1469,107 @@ components:
           example: Pedido creado
         payload:
           $ref: "#/components/schemas/Order"
-    ErrorResponse:
+    OrderReadResponse:
       type: object
+      required: [status, message, payload]
       properties:
         status:
           type: string
-          example: error
+          example: success
         message:
           type: string
-          example: Pedido no encontrado
-        code:
+          example: Pedido obtenido
+        payload:
+          $ref: "#/components/schemas/OrderRead"
+    UsersResponse:
+      type: object
+      required: [status, message, payload]
+      properties:
+        status:
           type: string
-          example: ORDER_NOT_FOUND
+          example: success
+        message:
+          type: string
+          example: Lista de usuarios
+        payload:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+    UserResponse:
+      type: object
+      required: [status, message, payload]
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: usuario creado
+        payload:
+          $ref: "#/components/schemas/User"
+    StoresResponse:
+      type: object
+      required: [status, message, payload]
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Lista de tiendas
+        payload:
+          type: array
+          items:
+            $ref: "#/components/schemas/Store"
+    StoreResponse:
+      type: object
+      required: [status, message, payload]
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Tienda creada
+        payload:
+          $ref: "#/components/schemas/Store"
+    MockUsersResponse:
+      type: object
+      required: [status, message, payload]
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Usuarios mock generados
+        payload:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+    MockOrdersResponse:
+      type: object
+      required: [status, message, payload]
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Pedidos mock generados
+        payload:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+    MockDataResponse:
+      type: object
+      required: [status, message, payload]
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Datos mock generados
+        payload:
+          $ref: "#/components/schemas/MockDataResult"

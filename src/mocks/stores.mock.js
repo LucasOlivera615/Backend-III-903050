@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 export const generateMockStore = (ownerId, index) => ({
   _id: new mongoose.Types.ObjectId(),
-  name: `Comercio Demo ${index}`,
+  name: `Tienda Demo ${index}`,
   address: `Av. Siempre Viva ${700 + index}`,
   owner: ownerId,
   isActive: true,

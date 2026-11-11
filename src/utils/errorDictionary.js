@@ -19,7 +19,7 @@ export const ERROR_DICTIONARY = {
 
   "STORE_NOT_FOUND": {
     statusCode: 404,
-    message: "Comercio no encontrado"
+    message: "Tienda no encontrada"
   },
 
   "INVALID_ORDER_STATUS": {

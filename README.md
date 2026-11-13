@@ -2,13 +2,15 @@
 
 API de logística construida con Node.js, Express y MongoDB. Gestiona usuarios,
 comercios y pedidos con arquitectura por capas, mocks para cargar datos de prueba
-y un manejo centralizado de errores.
+y un manejo centralizado de errores. Incluye logging con Winston y documentación
+interactiva mediante Swagger/OpenAPI.
 
 ## Entidades
 
 - `User`: usuario del sistema. Roles: `admin`, `customer` y `store`.
 - `Store`: comercio asociado a un usuario con rol `store`.
 - `Order`: pedido asociado a un `customer` y a un `store`.
+- `Delivery`: representación de los datos de entrega incluidos en `Order`, sin modelo independiente.
 
 ## Requisitos
 
@@ -29,6 +31,7 @@ Completar el `.env`:
 | `PORT` | Puerto del servidor | `8080` |
 | `MONGODB_URI` | Conexión a MongoDB (obligatoria) | `mongodb://localhost:27017/shipnow` |
 | `NODE_ENV` | Entorno (`development` o `production`) | `development` |
+| `LOGGER_LVL` | Nivel de logging en producción | `info` |
 
 ```bash
 npm run dev
@@ -43,6 +46,18 @@ La API queda en `http://localhost:8080` si `PORT=8080`. Sin `PORT` usa `3000`.
 | `npm run dev` | Desarrollo con nodemon |
 | `npm start` | Producción |
 
+## Swagger
+
+La documentación interactiva está disponible en:
+
+**http://localhost:8080/api/docs** (con `PORT=8080`).
+
+Permite consultar y probar los endpoints, sus parámetros, cuerpos de solicitud, respuestas y errores mediante **Try it out**.
+
+La configuración se encuentra en `src/config/swagger.js` y las definiciones OpenAPI en `src/docs/swagger.yaml`.
+
+Módulos documentados: **Users, Stores, Orders, Deliveries, Mocks y Logger**. Deliveries incluye un schema reutilizable, pero no tiene endpoints independientes.
+
 ## Respuestas
 
 Éxito:
@@ -51,7 +66,7 @@ La API queda en `http://localhost:8080` si `PORT=8080`. Sin `PORT` usa `3000`.
 { "status": "success", "message": "usuario creado", "payload": {} }
 ```
 
-Algunos endpoints responden solo `{ "status": "success", "payload": {} }`.
+Los endpoints que utilizan `successResponse` incluyen `status`, `message` y `payload`.
 
 Error (middleware global):
 
@@ -136,6 +151,14 @@ DELETE /api/orders/:oid
 El service calcula el `total`. Estado inicial: `created`.
 Estados: `created`, `assigned`, `picked_up`, `in_transit`, `delivered`, `cancelled`.
 
+### Deliveries
+
+La información de entrega forma parte de `Order`, mediante los campos
+`deliveryAddress`, `status`, `priority` y `proof`.
+
+Swagger incluye el schema `Delivery`, pero actualmente no existen rutas
+independientes para gestionar entregas.
+
 ### Mocks
 
 Los GET no guardan nada. `POST /api/mocks/generateData` inserta en Mongo.
@@ -156,6 +179,21 @@ Sin body: 10 customers, 5 stores (con su usuario `store`) y 10 orders.
 Las cantidades son enteros entre 0 y 400. Para generar pedidos hace falta
 al menos un customer y un store en la misma carga. El email lleva un UUID
 para poder repetir la carga.
+
+**Nota:** `generateData` modifica la base de datos; se recomienda probarlo en un entorno de desarrollo.
+
+### Logger
+
+```http
+GET /api/logger-test
+```
+
+Endpoint de diagnóstico que genera mensajes de prueba para los niveles
+`fatal`, `error`, `warning`, `info`, `http` y `debug` de Winston.
+
+No realiza operaciones de negocio. Los errores se registran mediante archivos
+rotativos en `logs/errors-YYYY-MM-DD.log`. Se recomienda utilizar este endpoint
+únicamente en entornos de prueba.
 
 ## Arquitectura
 

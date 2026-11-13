@@ -1,24 +1,64 @@
 tags:
   - name: Orders
-    description: Géstion de pedidos
+    description: Gestión de pedidos
+  - name: Users
+    description: Gestión de usuarios
+  - name: Stores
+    description: Gestión de comercios
+  - name: Mocks
+    description: Generación de datos simulados y carga de datos de prueba
+  - name: Logger
+    description: Herramientas de diagnóstico y pruebas del sistema de logs
+  - name: Deliveries
+    description: Información de entregas gestionada dentro de los pedidos
+  - name: Health
+    description: Verificación del funcionamiento de la API
+
 
 paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Verificar el estado de la API
+      description: Comprueba que el servidor responde correctamente.
+      responses:
+        "200":
+          description: API funcionando correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: API funcionando
+
   /api/orders:
     get:
       tags: [Orders]
       summary: Listar pedidos
-      description: Devuelve los pedidos registrados
+      description: Devuelve todos los pedidos registrados, incluyendo los datos poblados del cliente y del comercio.
       responses:
         "200":
-          description: Lista de pedidos obtenido
+          description: Lista de pedidos obtenida correctamente.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrdersResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
     post:
       tags: [Orders]
       summary: Crear un pedido
-      description: Require cliente y tienda existente
+      description: Crea un pedido para un usuario con rol customer y un comercio existente. El total se calcula automáticamente.
       requestBody:
         required: true
         content:
@@ -27,46 +67,679 @@ paths:
               $ref: "#/components/schemas/OrderInput"
       responses:
         "201":
-          description: Pedido creado
+          description: Pedido creado correctamente.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrderResponse"
-        "404":
-          description: Cliente o tienda no encontrada
+        "400":
+          description: Faltan datos, los artículos son inválidos o el usuario no tiene rol customer.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "400":
-          description: Datos, rol del cliente o ID invalidos
+        "404":
+          description: No se encontró el cliente o el comercio indicado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /api/orders/{oid}:
+    parameters:
+      - in: path
+        name: oid
+        required: true
+        description: Identificador del pedido.
+        schema:
+          type: string
+          example: 6acf7ff968b188fed334690c
+
     get:
       tags: [Orders]
       summary: Obtener un pedido
-      description: Devuelve un pedido del ID indicado
-      parameters:
-        - in: path
-          name: oid
-          required: true
-          description: ID del pedido que queremos consultar
-          schema:
-            type: string
+      description: Devuelve un pedido específico, incluyendo los datos poblados del cliente y del comercio.
       responses:
         "200":
-          description: Pedido encontrado correctamente
-        "404":
-          description: No existe un pedido con ese ID
+          description: Pedido obtenido correctamente.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/OrderRead"
         "400":
-          description: El ID no tiene el formato correcto
+          description: El identificador tiene un formato inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe un pedido con ese identificador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags: [Orders]
+      summary: Eliminar un pedido
+      description: Elimina un pedido existente mediante su identificador.
+      responses:
+        "200":
+          description: Pedido eliminado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "400":
+          description: El identificador tiene un formato inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe un pedido con ese identificador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/orders/{oid}/status:
+    parameters:
+      - in: path
+        name: oid
+        required: true
+        description: Identificador del pedido.
+        schema:
+          type: string
+          example: 6acf7ff968b188fed334690c
+
+    put:
+      tags: [Orders]
+      summary: Actualizar el estado de un pedido
+      description: Modifica el estado de un pedido existente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+                  example: in_transit
+              required: [status]
+      responses:
+        "200":
+          description: Estado del pedido actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "400":
+          description: Estado inválido o identificador con formato incorrecto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe un pedido con ese identificador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Listar usuarios
+      description: Devuelve todos los usuarios registrados.
+      responses:
+        "200":
+          description: Lista de usuarios obtenida correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      tags: [Users]
+      summary: Crear un usuario
+      description: Crea un usuario. Si no se proporciona un rol, se utiliza customer por defecto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "201":
+          description: Usuario creado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: Faltan campos obligatorios o el rol indicado es inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users/{uid}:
+    parameters:
+      - in: path
+        name: uid
+        required: true
+        description: Identificador del usuario.
+        schema:
+          type: string
+          example: 6acf7ff968b188fed334690c
+
+    get:
+      tags: [Users]
+      summary: Obtener un usuario
+      description: Devuelve un usuario mediante su identificador.
+      responses:
+        "200":
+          description: Usuario obtenido correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: El identificador tiene un formato inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe un usuario con ese identificador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags: [Users]
+      summary: Actualizar un usuario
+      description: Actualiza los campos proporcionados de un usuario existente. El modelo aplica sus validaciones al guardar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Usuario actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: El identificador tiene un formato inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe un usuario con ese identificador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor u otro error de persistencia no normalizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags: [Users]
+      summary: Eliminar un usuario
+      description: Elimina un usuario mediante su identificador.
+      responses:
+        "200":
+          description: Usuario eliminado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: El identificador tiene un formato inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe un usuario con ese identificador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/stores:
+    get:
+      tags: [Stores]
+      summary: Listar comercios
+      description: Devuelve todos los comercios registrados.
+      responses:
+        "200":
+          description: Lista de comercios obtenida correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoresResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      tags: [Stores]
+      summary: Crear un comercio
+      description: Crea un comercio asociado a un usuario existente con rol store.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreInput"
+      responses:
+        "201":
+          description: Comercio creado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+        "400":
+          description: Faltan datos obligatorios o el propietario no tiene rol store.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe el usuario propietario indicado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/stores/{sid}:
+    parameters:
+      - in: path
+        name: sid
+        required: true
+        description: Identificador del comercio.
+        schema:
+          type: string
+          example: 6acf7ff968b188fed334690b
+
+    get:
+      tags: [Stores]
+      summary: Obtener un comercio
+      description: Devuelve un comercio mediante su identificador.
+      responses:
+        "200":
+          description: Comercio obtenido correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+        "400":
+          description: El identificador tiene un formato inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe un comercio con ese identificador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags: [Stores]
+      summary: Actualizar un comercio
+      description: Actualiza los campos proporcionados de un comercio existente. El modelo aplica sus validaciones al guardar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreUpdate"
+      responses:
+        "200":
+          description: Comercio actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+        "400":
+          description: El identificador tiene un formato inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe un comercio con ese identificador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor u otro error de persistencia no normalizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags: [Stores]
+      summary: Eliminar un comercio
+      description: Elimina un comercio mediante su identificador.
+      responses:
+        "200":
+          description: Comercio eliminado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+        "400":
+          description: El identificador tiene un formato inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No existe un comercio con ese identificador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/mocks/mockingusers:
+    get:
+      tags: [Mocks]
+      summary: Generar usuarios simulados
+      description: Genera usuarios mock en memoria sin guardarlos en MongoDB.
+      parameters:
+        - in: query
+          name: qty
+          required: false
+          description: Cantidad de usuarios a generar. Debe ser un entero entre 0 y 400.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 400
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: Usuarios mock generados correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MockUsersResponse"
+        "400":
+          description: Cantidad inválida. Código INVALID_MOCK_AMOUNT.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/mocks/mockingorders:
+    get:
+      tags: [Mocks]
+      summary: Generar pedidos simulados
+      description: Genera pedidos mock en memoria, utilizando usuarios y comercios simulados. No guarda datos en MongoDB.
+      parameters:
+        - in: query
+          name: qty
+          required: false
+          description: Cantidad de pedidos a generar. Debe ser un entero entre 0 y 400.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 400
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: Pedidos mock generados correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MockOrdersResponse"
+        "400":
+          description: Cantidad inválida. Código INVALID_MOCK_AMOUNT.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/mocks/generateData:
+    post:
+      tags: [Mocks]
+      summary: Insertar datos de prueba
+      description: |
+        Genera e inserta usuarios, comercios y pedidos simulados en MongoDB.
+
+        Los campos users, stores y orders deben ser enteros entre 0 y 400.
+        Si se omiten, se utilizan los valores predeterminados 10, 5 y 10.
+
+        Para generar pedidos debe solicitarse al menos un customer y un store.
+        Por cada comercio solicitado también se crea un usuario propietario
+        con rol store. Por eso, la cantidad total de usuarios insertados
+        puede ser mayor que el valor enviado en users.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateDataInput"
+      responses:
+        "201":
+          description: Datos de prueba insertados correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateDataResponse"
+        "400":
+          description: Cantidades inválidas o pedidos solicitados sin usuarios o comercios.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor o error de persistencia.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/logger-test:
+    get:
+      tags: [Logger]
+      summary: Probar los niveles del logger
+      description: |
+        Endpoint de diagnóstico que genera mensajes de prueba
+        para los niveles fatal, error, warning, info, http y debug.
+
+        No realiza operaciones de negocio ni modifica documentos
+        en MongoDB. Los mensajes registrados dependen de la
+        configuración de Winston y sus transportes.
+      responses:
+        "200":
+          description: Prueba del logger ejecutada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Prueba de logger ejecutada
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 
 components:
   schemas:
+    User:
+      type: object
+      description: Documento de usuario devuelto actualmente por la API.
+      properties:
+        _id:
+          type: string
+          example: 6acf7ff968b188fed334690c
+        firstName:
+          type: string
+          example: Lucas
+        lastName:
+          type: string
+          example: Olivera
+        email:
+          type: string
+          format: email
+          example: lucas@email.com
+        password:
+          type: string
+          description: Actualmente incluido en las respuestas de la API. No debería exponerse.
+        role:
+          type: string
+          enum: [admin, customer, store]
+          example: customer
+        documents:
+          type: array
+          items: {}
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Store:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 6acf7ff968b188fed334690b
+        name:
+          type: string
+          example: Comercio Central
+        address:
+          type: string
+          example: Avenida Italia 1234
+        owner:
+          type: string
+          description: ID del usuario propietario
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     OrderItem:
       type: object
       properties:
@@ -80,64 +753,63 @@ components:
           type: number
           example: 1500
       required: [name, quantity, price]
-    Customer:
+
+    OrderBase:
       type: object
       properties:
         _id:
           type: string
-        firstName:
-          type: string
-        lastName:
-          type: string
-        email:
-          type: string
-        role:
-          type: string
-    Store:
-      type: object
-      properties:
-        _id:
-          type: string
-        name:
-          type: string
-        address:
-          type: string
-        owner:
-          type: string
-    OrderRead:
-      type: object
-      properties:
-        _id:
-          type: string
-        customer:
-          $ref: "#/components/schemas/Customer"
-        store:
-          $ref: "#/components/schemas/Store"
         items:
           type: array
           items:
             $ref: "#/components/schemas/OrderItem"
-        deliverAddress:
+        deliveryAddress:
           type: string
+          example: Calle falsa 123
         total:
           type: number
+          example: 3000
         status:
           type: string
+          enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+          example: created
         priority:
           type: string
-    OrdersResponse:
-      type: object
-      properties:
-        status:
+          enum: [low, normal, high]
+          example: normal
+        proof:
+          type: object
+          nullable: true
+          additionalProperties: true
+        createdAt:
           type: string
-          example: success
-        message:
+          format: date-time
+        updatedAt:
           type: string
-          example: Lista de pedidos
-        payload:
-          type: array
-          items:
-            $ref: "#/components/schemas/OrderRead"
+          format: date-time
+
+    Order:
+      allOf:
+        - $ref: "#/components/schemas/OrderBase"
+        - type: object
+          properties:
+            customer:
+              type: string
+              description: ID del cliente
+            store:
+              type: string
+              description: ID del comercio
+
+    OrderRead:
+      allOf:
+        - $ref: "#/components/schemas/OrderBase"
+        - type: object
+          properties:
+            customer:
+              $ref: "#/components/schemas/User"
+            store:
+              $ref: "#/components/schemas/Store"
+
     OrderInput:
       type: object
       properties:
@@ -147,7 +819,7 @@ components:
           example: 6acf7ff968b188fed334690c
         store:
           type: string
-          description: ID de una tienda existente
+          description: ID de un comercio existente
           example: 6acf7ff968b188fed334690b
         deliveryAddress:
           type: string
@@ -161,28 +833,8 @@ components:
           enum: [low, normal, high]
           default: normal
       required: [customer, store, items, deliveryAddress]
-    Order:
-      type: object
-      properties:
-        _id:
-          type: string
-        customer:
-          type: string
-        store:
-          type: string
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/OrderItem"
-        deliverAddress:
-          type: string
-        total:
-          type: number
-        status:
-          type: string
-        priority:
-          type: string
-    OrderResponse:
+
+    SuccessResponse:
       type: object
       properties:
         status:
@@ -190,9 +842,28 @@ components:
           example: success
         message:
           type: string
-          example: Pedido creado
+          example: Operación realizada correctamente
         payload:
-          $ref: "#/components/schemas/Order"
+          description: Información devuelta por la operación.
+
+    OrdersResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            payload:
+              type: array
+              items:
+                $ref: "#/components/schemas/OrderRead"
+
+    OrderResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            payload:
+              $ref: "#/components/schemas/Order"
+
     ErrorResponse:
       type: object
       properties:
@@ -204,4 +875,233 @@ components:
           example: Pedido no encontrado
         code:
           type: string
+          enum:
+            - INTERNAL_SERVER_ERROR
+            - ROUTE_NOT_FOUND
+            - USER_NOT_FOUND
+            - VALIDATION_ERROR
+            - INVALID_USER_ROLE
+            - ORDER_NOT_FOUND
+            - STORE_NOT_FOUND
+            - INVALID_ORDER_STATUS
+            - INVALID_MOCK_AMOUNT
           example: ORDER_NOT_FOUND
+
+    UserInput:
+      type: object
+      description: Datos necesarios para registrar un usuario.
+      properties:
+        firstName:
+          type: string
+          example: Lucas
+        lastName:
+          type: string
+          example: Olivera
+        email:
+          type: string
+          format: email
+          example: lucas@email.com
+        password:
+          type: string
+          format: password
+          example: claveSegura123
+        role:
+          type: string
+          enum: [admin, customer, store]
+          default: customer
+      required: [firstName, lastName, email, password]
+
+    UserUpdate:
+      type: object
+      description: Campos que pueden enviarse para actualizar un usuario.
+      properties:
+        firstName:
+          type: string
+          example: Lucas
+        lastName:
+          type: string
+          example: Olivera
+        email:
+          type: string
+          format: email
+          example: lucas@email.com
+        password:
+          type: string
+          format: password
+        role:
+          type: string
+          enum: [admin, customer, store]
+        documents:
+          type: array
+          items: {}
+
+    UsersResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            payload:
+              type: array
+              items:
+                $ref: "#/components/schemas/User"
+
+    UserResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            payload:
+              $ref: "#/components/schemas/User"
+
+    StoreInput:
+      type: object
+      description: Datos necesarios para crear un comercio.
+      properties:
+        name:
+          type: string
+          example: Comercio Central
+        address:
+          type: string
+          example: Avenida Italia 1234
+        owner:
+          type: string
+          description: ID de un usuario existente con rol store.
+          example: 6acf7ff968b188fed334690c
+        isActive:
+          type: boolean
+          default: true
+      required: [name, address, owner]
+
+    StoreUpdate:
+      type: object
+      description: Campos que pueden enviarse para actualizar un comercio.
+      properties:
+        name:
+          type: string
+          example: Comercio Central
+        address:
+          type: string
+          example: Avenida Italia 1234
+        owner:
+          type: string
+          description: ID del usuario propietario.
+          example: 6acf7ff968b188fed334690c
+        isActive:
+          type: boolean
+          example: true
+
+    StoresResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            payload:
+              type: array
+              items:
+                $ref: "#/components/schemas/Store"
+
+    StoreResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            payload:
+              $ref: "#/components/schemas/Store"
+
+
+    MockUsersResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            payload:
+              type: array
+              items:
+                $ref: "#/components/schemas/User"
+
+    MockOrdersResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            payload:
+              type: array
+              items:
+                $ref: "#/components/schemas/Order"
+
+    GenerateDataInput:
+      type: object
+      description: Cantidades de datos simulados que se insertarán en MongoDB.
+      properties:
+        users:
+          type: integer
+          minimum: 0
+          maximum: 400
+          default: 10
+          description: Cantidad de usuarios customer a generar.
+          example: 10
+        stores:
+          type: integer
+          minimum: 0
+          maximum: 400
+          default: 5
+          description: Cantidad de comercios a generar. Cada comercio crea también un usuario con rol store.
+          example: 5
+        orders:
+          type: integer
+          minimum: 0
+          maximum: 400
+          default: 10
+          description: Cantidad de pedidos a generar.
+          example: 10
+
+    GenerateDataResult:
+      type: object
+      description: Cantidades de documentos efectivamente insertados.
+      properties:
+        users:
+          type: integer
+          description: Total de usuarios creados, incluyendo customers y propietarios de comercios.
+          example: 15
+        stores:
+          type: integer
+          example: 5
+        orders:
+          type: integer
+          example: 10
+
+    GenerateDataResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            payload:
+              $ref: "#/components/schemas/GenerateDataResult"
+
+    Delivery:
+      type: object
+      description: |
+        Representación de los datos relacionados con la entrega
+        que actualmente forman parte de un pedido (Order).
+        No corresponde a una colección independiente de MongoDB.
+      properties:
+        deliveryAddress:
+          type: string
+          description: Dirección de entrega del pedido.
+          example: Avenida Italia 1234
+        status:
+          type: string
+          description: Estado general del pedido, incluyendo el progreso de entrega.
+          enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+          example: in_transit
+        priority:
+          type: string
+          description: Prioridad asignada al pedido.
+          enum: [low, normal, high]
+          example: normal
+        proof:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Comprobante o información adicional asociada al pedido.
+      required: [deliveryAddress]

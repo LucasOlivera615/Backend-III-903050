@@ -617,6 +617,64 @@ paths:
                 status: error
                 message: Error interno en el servidor
                 code: INTERNAL_SERVER_ERROR
+  /api/users/{uid}/documents:
+    post:
+      tags: [Users]
+      summary: Subir un documento PDF de usuario
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          schema:
+            type: string
+          example: 6acf7ff968b188fed334690c
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [document, type]
+              properties:
+                document:
+                  type: string
+                  format: binary
+                  description: PDF de hasta 5 MB.
+                type:
+                  type: string
+                  enum: [user_document]
+                  example: user_document
+      responses:
+        "201":
+          description: Documento agregado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: Archivo, campo, tipo de documento o ID invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Usuario no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: El archivo supera el limite de 5 MB.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error de almacenamiento o persistencia.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
   /api/stores:
     get:
       tags: [Stores]
@@ -1136,8 +1194,8 @@ components:
           example: customer
         documents:
           type: array
-          items: {}
-          example: []
+          items:
+            $ref: "#/components/schemas/Document"
     UserInput:
       type: object
       required: [firstName, lastName, email, password]
@@ -1354,8 +1412,8 @@ components:
           example: customer
         documents:
           type: array
-          items: {}
-          example: []
+          items:
+            $ref: "#/components/schemas/Document"
       nullable: true
       description: Usuario poblado por las consultas de pedidos. Puede ser null si el usuario fue eliminado.
     StoreRead:
@@ -1573,3 +1631,30 @@ components:
           example: Datos mock generados
         payload:
           $ref: "#/components/schemas/MockDataResult"
+    Document:
+      type: object
+      required: [originalName, fileName, path, mimeType, size, type, uploadedAt]
+      properties:
+        originalName:
+          type: string
+          example: dni.pdf
+        fileName:
+          type: string
+          example: 767ec782-e213-4894-a2d3-b0de753f5cbb.pdf
+        path:
+          type: string
+          example: uploads/documents/767ec782-e213-4894-a2d3-b0de753f5cbb.pdf
+        mimeType:
+          type: string
+          example: application/pdf
+        size:
+          type: integer
+          example: 24533
+        type:
+          type: string
+          enum: [user_document]
+          example: user_document
+        uploadedAt:
+          type: string
+          format: date-time
+          example: "2026-11-02T15:00:00.000Z"

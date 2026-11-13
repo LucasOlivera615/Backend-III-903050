@@ -18,3 +18,8 @@ export const ORDER_PRIORITY = {
   NORMAL: 'normal',
   HIGH: 'high',
 };
+
+export const DOCUMENT_TYPES = {
+  USER_DOCUMENT: "user_document",
+  ORDER_PROOF: "order_proof"
+}

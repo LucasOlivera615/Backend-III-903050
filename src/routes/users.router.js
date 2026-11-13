@@ -5,7 +5,9 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  uploadUserDocument
 } from "../controller/user.controller.js";
+import upload from "../middlewares/upload.middleware.js";
 
 const router = Router();
 
@@ -18,5 +20,7 @@ router.post("/", createUser);
 router.put("/:uid", updateUser);
 
 router.delete("/:uid", deleteUser);
+
+router.post("/:uid/documents", upload.single("document"), uploadUserDocument);
 
 export default router;

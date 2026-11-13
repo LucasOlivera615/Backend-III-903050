@@ -1,7 +1,7 @@
 import { userRepository } from '../repository/user.repository.js';
 import { createError } from '../utils/apiResponse.js';
 import { ERROR_CODES } from '../utils/errorDictionary.js';
-import { USER_ROLES } from '../utils/constants.js';
+import { DOCUMENT_TYPES, USER_ROLES } from '../utils/constants.js';
 import logger from '../config/logger.js';
 export const userService = {
   getUsers: async () => {
@@ -63,4 +63,29 @@ export const userService = {
 
     return user;
   },
+
+  addDocument: async (id, file, type) => {
+    if(!file) throw createError(ERROR_CODES.FILE_REQUIRED);
+
+    if( !Object.values(DOCUMENT_TYPES).includes(type) ){
+      throw createError(ERROR_CODES.INVALID_DOCUMENT_TYPE)
+    }
+
+    const user = await userRepository.findById(id);
+    if(!user) throw createError(ERROR_CODES.USER_NOT_FOUND);
+
+    const document = {
+      originalName: file.originalname,
+      fileName: file.filename,
+      path: file.path,
+      mimeType: file.mimetype,
+      size: file.size,
+      type
+    }
+
+    const documents = [...user.documents, document];
+    const updatedUser = await userRepository.update(id, { documents });
+
+    return updatedUser;
+  }
 };

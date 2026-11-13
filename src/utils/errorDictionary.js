@@ -8,7 +8,15 @@ export const ERROR_CODES = {
   ORDER_NOT_FOUND: "ORDER_NOT_FOUND",
   STORE_NOT_FOUND: "STORE_NOT_FOUND",
   INVALID_ORDER_STATUS: "INVALID_ORDER_STATUS",
-  INVALID_MOCK_AMOUNT: "INVALID_MOCK_AMOUNT"
+  INVALID_MOCK_AMOUNT: "INVALID_MOCK_AMOUNT",
+  INVALID_ID_MONGOOSE: "INVALID_ID_MONGOOSE",
+  
+  FILE_REQUIRED: "FILE_REQUIRED",
+  INVALID_DOCUMENT_TYPE: "INVALID_DOCUMENT_TYPE",
+  INVALID_FILE_TYPE: "INVALID_FILE_TYPE",
+  FILE_TOO_LARGE: "FILE_TOO_LARGE",
+  INVALID_UPLOAD: "INVALID_UPLOAD",
+  UPLOAD_ERROR: "UPLOAD_ERROR"
 }
 
 export const ERROR_DICTIONARY = {
@@ -56,5 +64,40 @@ export const ERROR_DICTIONARY = {
   "INVALID_USER_ROLE": {
     statusCode: 400,
     message: "Rol invalido"
+  },
+
+  "INVALID_ID_MONGOOSE": {
+    statusCode: 400,
+    message: "ID invalido"
+  },
+
+  "FILE_REQUIRED": {
+    statusCode: 400,
+    message: "Debes adjuntar un archivo"
+  },
+
+  "INVALID_DOCUMENT_TYPE": {
+    statusCode: 400,
+    message: "Tipo de documento invalido"
+  },
+
+  "INVALID_FILE_TYPE": {
+    statusCode: 400,
+    message: "Solo se permiten archivos PDF"
+  },
+
+  "FILE_TOO_LARGE": {
+    statusCode: 413,
+    message: "El archivo supera el limite maximo de 5MB"
+  },
+
+  "INVALID_UPLOAD": {
+    statusCode: 400,
+    message: "Campo de archivo o cantidad no permitidos"
+  },
+
+  "UPLOAD_ERROR": {
+    statusCode: 500,
+    message: "No se pudo guardar el archivo"
   }
 }

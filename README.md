@@ -12,7 +12,7 @@ y un manejo centralizado de errores.
 
 ## Requisitos
 
-- Node.js 18 o superior
+- Node.js 22 o superior
 - MongoDB local o Atlas
 
 ## Instalación
@@ -42,6 +42,7 @@ La API queda en `http://localhost:8080` si `PORT=8080`. Sin `PORT` usa `3000`.
 | --- | --- |
 | `npm run dev` | Desarrollo con nodemon |
 | `npm start` | Producción |
+| `npm test` | Ejecuta los tests funcionales con Mocha, Chai y Supertest |
 
 ## Respuestas
 
@@ -59,8 +60,9 @@ Error (middleware global):
 { "status": "error", "message": "Usuario no encontrado", "code": "USER_NOT_FOUND" }
 ```
 
-Los controllers de users delegan el error con `next(error)`. El middleware
-traduce `CastError` de Mongoose a `VALIDATION_ERROR` (`ID invalido`).
+Los controllers de users delegan el error con `next(error)`. El middleware transforma los errores `CastError` de Mongoose en respuestas
+HTTP 400 con código `VALIDATION_ERROR` y mensaje `ID invalido`. También reconoce los errores `ValidationError` de Mongoose y los transforma
+en respuestas HTTP 400 con código `VALIDATION_ERROR`, conservando el detalle del error de validación.
 
 ## Endpoints
 
@@ -189,3 +191,95 @@ en cada capa y el cliente puede distinguir `USER_NOT_FOUND` de un 404 genérico.
 Importar `postman/ShipNow-Clase-4.postman_collection.json` y
 `postman/ShipNow-Clase-4.postman_environment.json`. Seleccionar el environment
 **ShipNow Clase-4**. Los POST de creación guardan `userId`, `storeId` y `orderId`.
+
+## Testing funcional
+
+Se implementaron pruebas funcionales utilizando:
+
+- **Mocha:** ejecución y organización de las pruebas.
+- **Chai:** aserciones sobre los resultados.
+- **Supertest:** simulación de peticiones HTTP a la API.
+
+### Configuración
+
+Las pruebas utilizan una base de datos MongoDB independiente llamada
+`shipnow_test`, evitando modificar los datos de desarrollo o producción.
+
+Copiar `.env.test.example` a `.env.test` y configurar la conexión a MongoDB:
+
+```env
+NODE_ENV=test
+PORT=8081
+MONGODB_URI=mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/shipnow_test?retryWrites=true&w=majority
+LOGGER_LVL=error
+```
+
+Si se utiliza MongoDB Atlas, reemplazar `MONGODB_URI` por la cadena de
+conexión correspondiente, asegurándose de que apunte a `shipnow_test`.
+
+El archivo `.env.test` contiene información privada y no debe subirse
+al repositorio.
+
+### Ejecutar los tests
+
+Instalar las dependencias:
+
+```bash
+npm install
+```
+
+Ejecutar:
+
+```bash
+npm test
+```
+
+El script utiliza Node.js, Mocha y las variables definidas en `.env.test`.
+
+El comando `npm test` requiere Node.js 20.6 o superior
+debido al uso de `--env-file`. Se recomienda Node.js 22.
+
+### Pruebas implementadas
+
+| Suite | Archivo | Tests |
+| --- | --- | ---: |
+| Users | `tests/users.test.js` | 3 |
+| Orders | `tests/orders.test.js` | 7 |
+| Mocks | `tests/mocks.test.js` | 6 |
+| System | `tests/system.test.js` | 3 |
+| **Total** | | **19** |
+
+Las pruebas verifican:
+
+- Consulta de usuarios y manejo de errores.
+- Creación, consulta y actualización de pedidos.
+- Validación de datos obligatorios y estados inválidos.
+- Generación de usuarios y pedidos simulados.
+- Inserción real de datos mock en MongoDB.
+- Funcionamiento del endpoint de Logger.
+- Disponibilidad de la interfaz de Swagger.
+- Respuesta HTTP 404 para rutas inexistentes.
+
+### Protección de la base de testing
+
+El archivo `tests/setup.js` verifica que:
+
+1. `NODE_ENV` sea `test`.
+2. La URI de MongoDB apunte a `shipnow_test`.
+3. La conexión activa corresponda a esa base de datos.
+
+Los tests que insertan documentos registran sus identificadores y realizan
+la limpieza al finalizar.
+
+No se utiliza `dropDatabase()` ni se vacían colecciones completas.
+
+### Resultado de las pruebas
+
+Última ejecución verificada:
+
+```text
+19 passing (3s)
+```
+
+Las 19 pruebas se ejecutaron correctamente en conjunto y se comprobó
+su reproducibilidad mediante ejecuciones consecutivas.

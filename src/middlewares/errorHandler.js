@@ -7,6 +7,11 @@ export const errorHandler = (error, req, res, next) => {
 
   if (error.name === "CastError") {
     handledError = createError(ERROR_CODES.VALIDATION_ERROR, "ID invalido");
+  } else if (error.name === "ValidationError") {
+    handledError = createError(
+      ERROR_CODES.VALIDATION_ERROR,
+      error.message
+    )
   }
 
   const statusCode = handledError.statusCode || 500;

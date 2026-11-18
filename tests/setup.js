@@ -1,55 +1,98 @@
-import './env.js';
-import { config } from '../src/config/index.js';
-import mongoose from 'mongoose';
-import UserModel from '../src/models/user.model.js';
-import StoreModel from '../src/models/store.model.js';
-import OrderModel from '../src/models/order.model.js';
-import fs from 'node:fs/promises';
+import "./env.js"
+import { config } from "../src/config/index.js"
+import mongoose from "mongoose"
+import UserModel from "../src/models/user.model.js"
+import StoreModel from "../src/models/store.model.js"
+import OrderModel from "../src/models/order.model.js"
+import fs from "node:fs/promises"
+import { randomUUID } from "node:crypto"
 
-function testDatabase() {
-  if (config.nodeEnv !== 'test' || mongoose.connection.name !== 'shipnow-903050_test') {
-    throw new Error('Limpieza bloqueada: se requiere la base shipnow-903050_test');
+const BASE_DATABASE = "shipnow-903050_test"
+const RUN_DATABASE = `shipnow_test_${randomUUID().slice(0, 8)}`
+
+function validateTestEnvironment() {
+  if (config.nodeEnv !== "test" || !config.mongoDbUri) {
+    throw new Error("Testing bloqueado: entorno o URI incorrectos")
+  }
+
+  let databaseName
+
+  try {
+    databaseName = new URL(config.mongoDbUri).pathname.slice(1)
+  } catch {
+    throw new Error("Testing bloqueado: URI de MongoDB inválida")
+  }
+
+  if (databaseName !== BASE_DATABASE) {
+    throw new Error("Testing bloqueado: base de referencia incorrecta")
+  }
+}
+
+function validateConnection() {
+  if (
+    config.nodeEnv !== "test" ||
+    mongoose.connection.name !== RUN_DATABASE
+  ) {
+    throw new Error("Operación bloqueada: conexión de testing incorrecta")
   }
 }
 
 async function clean() {
-  testDatabase();
+  validateConnection()
 
-  await OrderModel.deleteMany({});
-  await StoreModel.deleteMany({});
-  await UserModel.deleteMany({});
+  await OrderModel.deleteMany({})
+  await StoreModel.deleteMany({})
+  await UserModel.deleteMany({})
 }
 
 export const mochaHooks = {
   async beforeAll() {
-    if (!config.mongoDbUri) {
-      throw new Error('Falta MONGODB_URI_TEST en .env');
-    }
+    validateTestEnvironment()
 
     await mongoose.connect(config.mongoDbUri, {
-      serverSelectionTimeoutMS: 5000,
-    });
+      dbName: RUN_DATABASE,
+      serverSelectionTimeoutMS: 5000
+    })
 
-    testDatabase();
-    await UserModel.init();
+    validateConnection()
+    await UserModel.init()
   },
 
   async beforeEach() {
-    await clean();
-    await fs.rm('uploads/test/documents', {
-      recursive: true,
-      force: true,
-    });
-    await fs.mkdir('uploads/test/documents', { recursive: true });
+    await clean()
+
+    for (const folder of [
+      "uploads/test/documents",
+      "uploads/test/proofs"
+    ]) {
+      await fs.rm(folder, {
+        recursive: true,
+        force: true
+      })
+
+      await fs.mkdir(folder, {
+        recursive: true
+      })
+    }
   },
+
 
   async afterAll() {
     try {
       if (mongoose.connection.readyState === 1) {
-        await clean();
+        validateConnection()
+        await mongoose.connection.dropDatabase()
       }
     } finally {
-      await mongoose.disconnect();
+      await mongoose.disconnect()
+
+      if (config.nodeEnv === "test") {
+        await fs.rm("uploads/test", {
+          recursive: true,
+          force: true
+        })
+      }
     }
-  },
-};
+  }
+
+}

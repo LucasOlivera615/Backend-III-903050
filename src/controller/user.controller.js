@@ -1,6 +1,7 @@
 import { userService } from '../service/user.service.js';
 import { successResponse } from '../utils/apiResponse.js';
 import { unlink } from "node:fs/promises";
+import logger from "../config/logger.js"
 
 export const getUsers = async (req, res, next) => {
   try {
@@ -48,13 +49,18 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
-export const uploadUserDocument = async(req, res, next) => {
-  try {
-    const uid = req.params.uid;
-    const type = req.body.type;
-    const file = req.file;
 
-    const user = await userService.addDocument(uid, file, type);
+export const uploadUserDocument = async (req, res, next) => {
+  try {
+    const uid = req.params.uid
+    const type = req.body.type
+    const file = req.file
+
+    const user = await userService.addDocument(uid, file, type)
+
+    logger.info(
+      `Documento cargado correctamente - Usuario: ${uid} - Archivo: ${file.filename} - Tipo: ${type}`
+    )
 
     successResponse(res, {
       statusCode: 201,
@@ -62,9 +68,16 @@ export const uploadUserDocument = async(req, res, next) => {
       payload: user
     })
   } catch (error) {
-    if(req.file){
-      await unlink(req.file.path);
+    if (req.file?.path) {
+      try {
+        await unlink(req.file.path)
+      } catch (cleanupError) {
+        logger.error(
+          `Error al eliminar archivo temporal: ${cleanupError.message}`
+        )
+      }
     }
-    next(error);
+
+    next(error)
   }
 }

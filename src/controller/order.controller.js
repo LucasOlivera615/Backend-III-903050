@@ -1,5 +1,7 @@
 import { orderService } from '../service/order.service.js';
 import { successResponse } from '../utils/apiResponse.js';
+import { unlink } from "node:fs/promises"
+import logger from "../config/logger.js"
 
 export const getOrders = async (req, res, next) => {
   try {
@@ -50,3 +52,34 @@ export const deleteOrder = async (req, res, next) => {
     next(error);
   }
 };
+
+export const uploadOrderProof = async (req, res, next) => {
+  try {
+    const order = await orderService.addProof(
+      req.params.oid,
+      req.file
+    )
+
+    logger.info(
+      `Comprobante cargado correctamente - Pedido: ${req.params.oid} - Archivo: ${req.file.filename}`
+    )
+
+    successResponse(res, {
+      statusCode: 201,
+      message: "Comprobante agregado correctamente",
+      payload: order
+    })
+  } catch (error) {
+    if (req.file?.path) {
+      try {
+        await unlink(req.file.path)
+      } catch (cleanupError) {
+        logger.error(
+          `Error al eliminar comprobante temporal: ${cleanupError.message}`
+        )
+      }
+    }
+
+    next(error)
+  }
+}

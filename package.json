@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon -e js,mjs,cjs,json,yaml src/server.js",
-    "test": "mocha --timeout 10000"
+    "test": "node --env-file=.env.test ./node_modules/mocha/bin/mocha.js --timeout 10000"
   },
   "dependencies": {
     "cors": "^2.8.5",

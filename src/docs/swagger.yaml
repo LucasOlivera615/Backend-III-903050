@@ -270,6 +270,80 @@ paths:
                 status: error
                 message: Error interno en el servidor
                 code: INTERNAL_SERVER_ERROR
+  /api/orders/{oid}/proof:
+    post:
+      tags: [Orders]
+      summary: Subir un comprobante PDF de pedido
+      description: >-
+        Permite adjuntar un único comprobante PDF a un pedido existente.
+        El archivo debe pesar como máximo 5 MB. Si el pedido ya tiene
+        un comprobante, se rechaza la nueva carga.
+        El archivo se guarda en disco y sus metadatos en MongoDB.
+      parameters:
+        - in: path
+          name: oid
+          required: true
+          description: ID del pedido al que se adjunta el comprobante.
+          schema:
+            type: string
+          example: 6acf7ff968b188fed334690d
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [proof]
+              properties:
+                proof:
+                  type: string
+                  format: binary
+                  description: Archivo PDF de hasta 5 MB.
+      responses:
+        "201":
+          description: Comprobante agregado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "400":
+          description: >-
+            Archivo faltante, formato inválido, campo incorrecto,
+            ID inválido o pedido que ya tiene un comprobante.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: El pedido ya tiene un comprobante
+                code: INVALID_UPLOAD
+        "404":
+          description: Pedido no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Pedido no encontrado
+                code: ORDER_NOT_FOUND
+        "413":
+          description: El archivo supera el límite de 5 MB.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: El archivo supera el limite maximo de 5MB
+                code: FILE_TOO_LARGE
+        "500":
+          description: Error de almacenamiento o persistencia.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalErrorResponse"
   /api/orders/{oid}/status:
     parameters:
       - in: path
@@ -1470,6 +1544,13 @@ components:
           type: string
           enum: [low, normal, high]
           example: normal
+        proof:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/OrderProof"
+          description: >-
+            Metadatos del comprobante PDF asociado al pedido.
+            Es null cuando todavía no se ha cargado un comprobante.
     OrderRead:
       type: object
       required: [_id, customer, store, items, deliveryAddress, total, status, priority]
@@ -1500,6 +1581,13 @@ components:
           type: string
           enum: [low, normal, high]
           example: normal
+        proof:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/OrderProof"
+          description: >-
+            Metadatos del comprobante PDF asociado al pedido.
+            Es null cuando todavía no se ha cargado un comprobante.
       description: Pedido consultado con cliente y tienda pobladas.
     OrdersResponse:
       type: object
@@ -1658,3 +1746,32 @@ components:
           type: string
           format: date-time
           example: "2026-11-02T15:00:00.000Z"
+    OrderProof:
+      type: object
+      required: [originalName, fileName, path, mimeType, size, type, uploadedAt]
+      properties:
+        originalName:
+          type: string
+          example: comprobante.pdf
+        fileName:
+          type: string
+          example: 767ec782-e213-4894-a2d3-b0de753f5cbb.pdf
+        path:
+          type: string
+          example: uploads/proofs/767ec782-e213-4894-a2d3-b0de753f5cbb.pdf
+        mimeType:
+          type: string
+          enum: [application/pdf]
+          example: application/pdf
+        size:
+          type: integer
+          description: Tamaño del archivo en bytes.
+          example: 24533
+        type:
+          type: string
+          enum: [order_proof]
+          example: order_proof
+        uploadedAt:
+          type: string
+          format: date-time
+          example: "2026-11-18T10:00:00.000Z"

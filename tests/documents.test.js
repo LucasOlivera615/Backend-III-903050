@@ -41,4 +41,26 @@ describe('Documentos de usuario', () => {
     const saved = await UserModel.findById(body.customer);
     expect(saved.documents).to.have.lengthOf(0);
   });
+
+  it('rechaza un tipo de documento invalido y elimina el archivo', async () => {
+    const body = await orderFixture()
+
+    const response = await request(app)
+      .post('/api/users/' + body.customer + '/documents')
+      .field('type', 'tipo_invalido')
+      .attach('document', 'tests/helpers/document.pdf')
+
+    expect(response.status).to.equal(400)
+    expect(response.body.status).to.equal('error')
+    expect(response.body.code).to.equal('INVALID_DOCUMENT_TYPE')
+
+    const saved = await UserModel.findById(body.customer)
+
+    expect(saved.documents).to.have.lengthOf(0)
+
+    const files = fs.readdirSync('uploads/test/documents')
+
+    expect(files).to.have.lengthOf(0)
+  })
+
 });

@@ -20,6 +20,23 @@ const orderItemSchema = new mongoose.Schema(
   }
 );
 
+const proofSchema = new mongoose.Schema(
+  {
+    originalName: { type: String, required: true },
+    fileName: { type: String, required: true },
+    path: { type: String, required: true },
+    mimeType: { type: String, required: true },
+    size: { type: Number, required: true },
+    type: {
+      type: String,
+      enum: ["order_proof"],
+      required: true
+    },
+    uploadedAt: { type: Date, default: Date.now }
+  },
+  { _id: false }
+)
+
 const orderSchema = new mongoose.Schema(
   {
     customer: {
@@ -55,7 +72,7 @@ const orderSchema = new mongoose.Schema(
       default: "normal"
     },
     proof: {
-      type: Object,
+      type: proofSchema,
       default: null
     }
   },

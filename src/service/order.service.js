@@ -4,7 +4,7 @@ import { storeRepository } from '../repository/store.repository.js';
 
 import { createError } from '../utils/apiResponse.js';
 import { ERROR_CODES } from '../utils/errorDictionary.js';
-import { ORDER_STATUS, USER_ROLES } from '../utils/constants.js';
+import { ORDER_STATUS, USER_ROLES, DOCUMENT_TYPES } from '../utils/constants.js';
 
 export const orderService = {
   getOrders: async () => {
@@ -25,13 +25,13 @@ export const orderService = {
     const { customer, store, items, deliveryAddress, priority } = orderData;
 
     if (!customer || !store || !deliveryAddress ||
-        !Array.isArray(items) || items.length === 0) {
+      !Array.isArray(items) || items.length === 0) {
       throw createError(ERROR_CODES.VALIDATION_ERROR);
     }
 
     for (const item of items) {
       if (!item || !Number.isFinite(item.quantity) || item.quantity <= 0 ||
-          !Number.isFinite(item.price) || item.price < 0) {
+        !Number.isFinite(item.price) || item.price < 0) {
         throw createError(ERROR_CODES.VALIDATION_ERROR,
           'Cada item debe tener cantidad mayor que cero y precio no negativo');
       }
@@ -75,6 +75,53 @@ export const orderService = {
     }
 
     return order;
+  },
+
+  addProof: async (id, file) => {
+    if (!file) {
+      throw createError(ERROR_CODES.FILE_REQUIRED)
+    }
+
+    const order = await orderRepository.findById(id)
+
+    if (!order) {
+      throw createError(ERROR_CODES.ORDER_NOT_FOUND)
+    }
+
+    if (order.proof) {
+      throw createError(
+        ERROR_CODES.INVALID_UPLOAD,
+        "El pedido ya tiene un comprobante"
+      )
+    }
+
+    const proof = {
+      originalName: file.originalname,
+      fileName: file.filename,
+      path: file.path,
+      mimeType: file.mimetype,
+      size: file.size,
+      type: DOCUMENT_TYPES.ORDER_PROOF
+    }
+
+
+    const updatedOrder = await orderRepository.updateProof(id, proof)
+
+    if (!updatedOrder) {
+      const existingOrder = await orderRepository.findById(id)
+
+      if (!existingOrder) {
+        throw createError(ERROR_CODES.ORDER_NOT_FOUND)
+      }
+
+      throw createError(
+        ERROR_CODES.INVALID_UPLOAD,
+        "El pedido ya tiene un comprobante"
+      )
+    }
+
+    return updatedOrder
+
   },
 
   deleteOrder: async (id) => {

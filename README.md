@@ -42,6 +42,7 @@ La API queda en `http://localhost:8080` si `PORT=8080`. Sin `PORT` usa `3000`.
 | --- | --- |
 | `npm run dev` | Desarrollo con nodemon |
 | `npm start` | Producción |
+| `npm test` | Ejecuta los tests automatizados con Mocha |
 
 ## Respuestas
 
@@ -93,6 +94,35 @@ DELETE /api/users/:uid
 
 Roles válidos: `admin`, `customer`, `store`. Default: `customer`.
 
+#### Documentos de usuario
+
+```http
+POST /api/users/:uid/documents
+```
+
+Permite adjuntar documentos PDF a un usuario existente.
+
+La petición utiliza `multipart/form-data` con dos campos obligatorios:
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| `document` | File | Archivo PDF de hasta 5 MB |
+| `type` | String | Tipo de documento: `user_document` |
+
+Ejemplo con cURL:
+
+```bash
+curl -X POST http://localhost:8080/api/users/ID_DEL_USUARIO/documents \
+  -F "document=@documento.pdf;type=application/pdf" \
+  -F "type=user_document"
+```
+
+Los archivos se guardan en `uploads/documents/` con un nombre único generado mediante UUID.
+
+MongoDB almacena los metadatos del archivo dentro del arreglo `documents` del usuario: `originalName`, `fileName`, `path`, `mimeType`, `size`, `type` y `uploadedAt`.
+
+Si la validación o persistencia falla después de guardar el archivo, el controller intenta eliminarlo para evitar archivos huérfanos.
+
 ### Stores
 
 ```http
@@ -137,6 +167,29 @@ DELETE /api/orders/:oid
 El service calcula el `total`. Estado inicial: `created`.
 Estados: `created`, `assigned`, `picked_up`, `in_transit`, `delivered`, `cancelled`.
 
+#### Comprobantes de pedidos
+
+```http
+POST /api/orders/:oid/proof
+```
+
+Permite adjuntar un comprobante PDF a un pedido existente.
+
+La petición utiliza `multipart/form-data` con el campo obligatorio `proof`.
+
+Ejemplo con cURL:
+
+```bash
+curl -X POST http://localhost:8080/api/orders/ID_DEL_PEDIDO/proof \
+  -F "proof=@comprobante.pdf;type=application/pdf"
+```
+
+Los archivos se guardan en `uploads/proofs/` con nombres únicos generados mediante UUID.
+
+Los metadatos del comprobante se almacenan en MongoDB, asociados al pedido.
+
+Cada pedido admite un único comprobante. La actualización atómica en MongoDB impide que dos solicitudes simultáneas asignen comprobantes diferentes al mismo pedido.
+
 ### Mocks
 
 Los GET no guardan nada. `POST /api/mocks/generateData` inserta en Mongo.
@@ -157,6 +210,44 @@ Sin body: 10 customers, 5 stores (con su usuario `store`) y 10 orders.
 Las cantidades son enteros entre 0 y 400. Para generar pedidos hace falta
 al menos un customer y un store en la misma carga. El email lleva un UUID
 para poder repetir la carga.
+
+## Carga de archivos con Multer
+
+La API utiliza Multer con almacenamiento en disco para recibir archivos mediante `multipart/form-data`.
+
+La configuración centralizada está en `src/middlewares/upload.middleware.js`.
+
+**Restricciones:**
+
+- Solo se aceptan archivos con MIME `application/pdf`.
+- Tamaño máximo: 5 MB por archivo.
+- Se permite un archivo por solicitud.
+- Los nombres de archivo se generan mediante UUID.
+- Los directorios de almacenamiento se crean automáticamente.
+- Los archivos cargados se excluyen del repositorio mediante `.gitignore`.
+
+**Directorios:**
+
+```text
+uploads/
+├── documents/
+└── proofs/
+```
+
+Durante las pruebas automatizadas se utiliza `uploads/test/` para mantener separados los archivos de prueba.
+
+### Errores de carga
+
+| Código | HTTP | Descripción |
+| --- | --- | --- |
+| `FILE_REQUIRED` | 400 | No se adjuntó un archivo obligatorio |
+| `INVALID_DOCUMENT_TYPE` | 400 | Tipo de documento no permitido |
+| `INVALID_FILE_TYPE` | 400 | El archivo no tiene el MIME permitido |
+| `INVALID_UPLOAD` | 400 | Campo incorrecto, cantidad no permitida o comprobante duplicado |
+| `FILE_TOO_LARGE` | 413 | El archivo supera los 5 MB |
+| `UPLOAD_ERROR` | 500 | Error de almacenamiento |
+
+Los errores se procesan mediante el middleware global, manteniendo el formato de respuesta normalizado de la API.
 
 ## Documentación con Swagger
 
@@ -239,6 +330,32 @@ orders.router.js
 `src/utils/errorDictionary.js`. El service lanza `createError(CODE)` y el
 middleware responde `{ status, message, code }`. Así no se repite el texto
 en cada capa y el cliente puede distinguir `USER_NOT_FOUND` de un 404 genérico.
+
+## Pruebas automatizadas
+
+La API cuenta con pruebas de integración utilizando Mocha, Chai y Supertest.
+
+Ejecutar:
+
+```bash
+npm test
+```
+
+Las pruebas utilizan `.env.test` y una base de datos temporal independiente para evitar modificar los datos de desarrollo.
+
+La ejecución incluye pruebas de:
+
+- Estado de la API y rutas inexistentes.
+- Generación de mocks.
+- Creación, consulta, validación y actualización de pedidos.
+- Carga de documentos de usuario.
+- Carga de comprobantes de pedidos.
+- Rechazo de archivos inválidos, archivos mayores a 5 MB y campos incorrectos.
+- Prevención de comprobantes duplicados, incluso ante solicitudes simultáneas.
+
+Los archivos temporales de prueba y la base de datos de pruebas se eliminan al finalizar la ejecución.
+
+**Última ejecución verificada:** 21 tests aprobados.
 
 ## Postman
 

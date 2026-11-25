@@ -1,9 +1,8 @@
-
 import multer from "multer"
 import { createError } from "../utils/apiResponse.js"
 import { ERROR_CODES } from "../utils/errorDictionary.js"
 import { config } from "../config/index.js"
-import fs from "node:fs"
+import fs from "node:fs/promises"
 import path from "node:path"
 import { randomUUID } from "node:crypto"
 
@@ -16,7 +15,7 @@ const folders = {
 }
 
 const storage = multer.diskStorage({
-  destination: (req, file, callback) => {
+  destination: async (req, file, callback) => {
     const folder = folders[file.fieldname]
 
     if (!folder) {
@@ -24,7 +23,7 @@ const storage = multer.diskStorage({
     }
 
     try {
-      fs.mkdirSync(folder, { recursive: true })
+      await fs.mkdir(folder, { recursive: true })
       callback(null, folder)
     } catch {
       callback(createError(ERROR_CODES.UPLOAD_ERROR))

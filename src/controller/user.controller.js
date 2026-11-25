@@ -5,13 +5,18 @@ import logger from "../config/logger.js"
 
 export const getUsers = async (req, res, next) => {
   try {
-    const users = await userService.getUsers();
-    //res.json({ status: 'success', payload: users });
-    successResponse(res, { message: 'Lista de usuarios', payload: users });
+    const { page, limit } = req.query
+
+    const users = await userService.getUsers({ page, limit })
+
+    successResponse(res, {
+      message: 'Lista de usuarios',
+      payload: users
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 
 export const getUserById = async (req, res, next) => {
   try {

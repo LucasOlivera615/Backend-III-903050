@@ -4,11 +4,45 @@ import { storeRepository } from '../repository/store.repository.js';
 
 import { createError } from '../utils/apiResponse.js';
 import { ERROR_CODES } from '../utils/errorDictionary.js';
-import { ORDER_STATUS, USER_ROLES, DOCUMENT_TYPES } from '../utils/constants.js';
+import { ORDER_STATUS, ORDER_PRIORITY, USER_ROLES, DOCUMENT_TYPES } from '../utils/constants.js';
 
 export const orderService = {
-  getOrders: async () => {
-    return orderRepository.findAll();
+
+  getOrders: async ({ page = "1", limit = "10", status, priority } = {}) => {
+    const pageNumber = Number(page)
+    const limitNumber = Number(limit)
+
+    if (
+      !Number.isSafeInteger(pageNumber) ||
+      !Number.isSafeInteger(limitNumber) ||
+      pageNumber < 1 ||
+      limitNumber < 1 ||
+      limitNumber > 100 ||
+      !Number.isSafeInteger((pageNumber - 1) * limitNumber)
+    ) {
+      throw createError(ERROR_CODES.INVALID_PAGINATION)
+    }
+
+    if (
+      status !== undefined &&
+      !Object.values(ORDER_STATUS).includes(status)
+    ) {
+      throw createError(ERROR_CODES.INVALID_ORDER_STATUS)
+    }
+
+    if (
+      priority !== undefined &&
+      !Object.values(ORDER_PRIORITY).includes(priority)
+    ) {
+      throw createError(ERROR_CODES.INVALID_ORDER_PRIORITY)
+    }
+
+    return orderRepository.findAll({
+      page: pageNumber,
+      limit: limitNumber,
+      status,
+      priority
+    })
   },
 
   getOrderById: async (id) => {

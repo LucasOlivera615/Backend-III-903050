@@ -1,25 +1,22 @@
-import "dotenv/config";
-import app from "./app.js";
-import connectDB from "./config/db.js";
-import { config } from "./config/index.js";
-import logger from "./config/logger.js"
-const PORT = config.port;
+import { config, validateConfig } from "./config/index.js"
 
 const startServer = async () => {
   try {
-    await connectDB();
+    validateConfig()
 
-    app.listen(PORT, () => {
-      logger.info(`Servidor escuchando en el puerto ${PORT}`)
-    });
+    const { default: app } = await import("./app.js")
+    const { default: connectDB } = await import("./config/db.js")
+    const { default: logger } = await import("./config/logger.js")
+
+    await connectDB()
+
+    app.listen(config.port, () => {
+      logger.info(`Servidor escuchando en el puerto ${config.port}`)
+    })
   } catch (error) {
-   logger.fatal(`Error al iniciar el servidor: ${error.message}`, {
-      error,
-    });
-
-    process.exitCode = 1
- 
+    console.error(`Error al iniciar el servidor: ${error.message}`)
+    process.exit(1)
   }
-};
+}
 
-startServer();
+startServer()

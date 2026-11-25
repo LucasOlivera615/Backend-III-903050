@@ -3,12 +3,15 @@ import { successResponse } from '../utils/apiResponse.js';
 
 export const getStores = async (req, res, next) => {
   try {
-    const stores = await storeService.getStores();
-    successResponse(res, { message: 'Lista de tiendas', payload: stores });
+    const { page, limit } = req.query
+
+    const stores = await storeService.getStores({ page, limit })
+
+    successResponse(res, { message: 'Lista de tiendas', payload: stores })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 
 export const getStoreById = async (req, res, next) => {
   try {

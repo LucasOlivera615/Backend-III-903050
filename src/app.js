@@ -9,6 +9,7 @@ import { notFoundHandler } from "./middlewares/notFoundHandler.js";
 import { httpLogger } from "./middlewares/httpLogger.js";
 import swaggerSpec from "./config/swagger.js";
 import swaggerUi from "swagger-ui-express";
+import { config } from "./config/index.js"
 
 const app = express();
 
@@ -16,16 +17,21 @@ app.use(cors());
 app.use(express.json());
 app.use(httpLogger)
 app.get("/health", (req, res) => {
-  res.json({
+  res.status(200).json({
     status: "success",
-    message: "API funcionando"
+    message: "API funcionando",
+    environment: config.nodeEnv,
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString()
   });
 });
 
 app.use("/api/users", usersRouter);
 app.use("/api/stores", storesRouter);
 app.use("/api/orders", ordersRouter);
-app.use("/api/mocks", mocksRouter);
+if (!config.isProd) {
+  app.use("/api/mocks", mocksRouter);
+}
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(notFoundHandler);

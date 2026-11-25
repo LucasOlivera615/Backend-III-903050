@@ -5,13 +5,23 @@ import logger from "../config/logger.js"
 
 export const getOrders = async (req, res, next) => {
   try {
-    const orders = await orderService.getOrders();
+    const { page, limit, status, priority } = req.query
 
-    successResponse(res, { message: 'Lista de pedidos', payload: orders });
+    const orders = await orderService.getOrders({
+      page,
+      limit,
+      status,
+      priority
+    })
+
+    successResponse(res, {
+      message: "Lista de pedidos",
+      payload: orders
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 
 export const getOrderById = async (req, res, next) => {
   try {

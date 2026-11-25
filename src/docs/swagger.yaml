@@ -12,10 +12,49 @@ paths:
     get:
       tags: [Orders]
       summary: Listar pedidos
-      description: Devuelve los pedidos con su cliente y tienda pobladas.
+      description: >-
+        Devuelve los pedidos con su cliente y tienda pobladas.
+        Permite paginar los resultados y filtrarlos por estado y prioridad.
+        Los filtros pueden combinarse.
+      parameters:
+        - in: query
+          name: page
+          required: false
+          description: Numero de pagina solicitada.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          required: false
+          description: Cantidad maxima de pedidos por pagina.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 5
+        - in: query
+          name: status
+          required: false
+          description: Filtrar pedidos por estado.
+          schema:
+            type: string
+            enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+          example: created
+        - in: query
+          name: priority
+          required: false
+          description: Filtrar pedidos por prioridad.
+          schema:
+            type: string
+            enum: [low, normal, high]
+          example: high
       responses:
         "200":
-          description: Lista de pedidos
+          description: Lista paginada de pedidos
           content:
             application/json:
               schema:
@@ -24,29 +63,67 @@ paths:
                 status: success
                 message: Lista de pedidos
                 payload:
-                  - _id: 6acf7ff968b188fed334690d
-                    customer:
-                      _id: 6acf7ff968b188fed334690c
-                      firstName: Ana
-                      lastName: Gomez
-                      email: ana@example.com
-                      password: clave-de-prueba
-                      role: customer
-                      documents: []
-                    store:
-                      _id: 6acf7ff968b188fed334690b
-                      name: Tienda Centro
-                      address: Av. Siempre Viva 100
-                      owner: 6acf7ff968b188fed334690a
-                      isActive: true
-                    items:
-                      - name: Caja mediana
-                        quantity: 2
-                        price: 1500
-                    deliveryAddress: Calle falsa 123
-                    total: 3000
-                    status: created
-                    priority: normal
+                  docs:
+                    - _id: 6acf7ff968b188fed334690d
+                      customer:
+                        _id: 6acf7ff968b188fed334690c
+                        firstName: Ana
+                        lastName: Gomez
+                        email: ana@example.com
+                        role: customer
+                      store:
+                          _id: 6acf7ff968b188fed334690b
+                          name: Tienda Centro
+                          address: Av. Siempre Viva 100
+                          owner: 6acf7ff968b188fed334690a
+                          isActive: true
+                          createdAt: "2026-11-25T12:00:00.000Z"
+                          updatedAt: "2026-11-25T12:00:00.000Z"
+                      items:
+                        - name: Caja mediana
+                          quantity: 2
+                          price: 1500
+                      deliveryAddress: Calle falsa 123
+                      total: 3000
+                      status: created
+                      priority: normal
+                      proof: null
+                      createdAt: "2026-11-25T12:30:00.000Z"
+                      updatedAt: "2026-11-25T12:30:00.000Z"
+                  totalDocs: 1
+                  page: 1
+                  limit: 5
+                  totalPages: 1
+                  hasNextPage: false
+                  hasPrevPage: false
+        "400":
+          description: >-
+            Parametros de paginacion, estado o prioridad invalidos.
+            Puede devolver INVALID_PAGINATION, INVALID_ORDER_STATUS
+            o INVALID_ORDER_PRIORITY.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidPagination:
+                  summary: Paginacion invalida
+                  value:
+                    status: error
+                    message: Los parametros page y limit deben ser enteros positivos. El limite maximo es 100
+                    code: INVALID_PAGINATION
+                invalidStatus:
+                  summary: Estado invalido
+                  value:
+                    status: error
+                    message: Estado de pedido invalido
+                    code: INVALID_ORDER_STATUS
+                invalidPriority:
+                  summary: Prioridad invalida
+                  value:
+                    status: error
+                    message: Prioridad de pedido invalida
+                    code: INVALID_ORDER_PRIORITY
         "500":
           description: >-
             Error interno del servidor o de persistencia. El mensaje y el código dependen de la
@@ -102,6 +179,9 @@ paths:
                   total: 3000
                   status: created
                   priority: normal
+                  proof: null
+                  createdAt: "2026-11-25T12:30:00.000Z"
+                  updatedAt: "2026-11-25T12:30:00.000Z"
         "400":
           description: >-
             Datos o ID inválidos, items vacíos, cantidad o precio inválido, o rol de cliente
@@ -163,15 +243,15 @@ paths:
                     firstName: Ana
                     lastName: Gomez
                     email: ana@example.com
-                    password: clave-de-prueba
                     role: customer
-                    documents: []
                   store:
                     _id: 6acf7ff968b188fed334690b
                     name: Tienda Centro
                     address: Av. Siempre Viva 100
                     owner: 6acf7ff968b188fed334690a
                     isActive: true
+                    createdAt: "2026-11-25T12:00:00.000Z"
+                    updatedAt: "2026-11-25T12:00:00.000Z"
                   items:
                     - name: Caja mediana
                       quantity: 2
@@ -180,6 +260,9 @@ paths:
                   total: 3000
                   status: created
                   priority: normal
+                  proof: null
+                  createdAt: "2026-11-25T12:30:00.000Z"
+                  updatedAt: "2026-11-25T12:30:00.000Z"
         "400":
           description: El ID no tiene el formato correcto.
           content:
@@ -236,8 +319,11 @@ paths:
                       price: 1500
                   deliveryAddress: Calle falsa 123
                   total: 3000
-                  status: created
+                  status: assigned
                   priority: normal
+                  proof: null
+                  createdAt: "2026-11-25T12:30:00.000Z"
+                  updatedAt: "2026-11-25T12:45:00.000Z"
         "400":
           description: El ID no tiene el formato correcto.
           content:
@@ -306,6 +392,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrderResponse"
+              example:
+                status: success
+                message: Comprobante agregado correctamente
+                payload:
+                  _id: 6acf7ff968b188fed334690d
+                  customer: 6acf7ff968b188fed334690c
+                  store: 6acf7ff968b188fed334690b
+                  items:
+                    - name: Caja mediana
+                      quantity: 2
+                      price: 1500
+                  deliveryAddress: Calle falsa 123
+                  total: 3000
+                  status: assigned
+                  priority: normal
+                  proof:
+                    originalName: comprobante.pdf
+                    fileName: 767ec782-e213-4894-a2d3-b0de753f5cbb.pdf
+                    path: uploads/proofs/767ec782-e213-4894-a2d3-b0de753f5cbb.pdf
+                    mimeType: application/pdf
+                    size: 24533
+                    type: order_proof
+                    uploadedAt: "2026-11-25T13:00:00.000Z"
+                  createdAt: "2026-11-25T12:30:00.000Z"
+                  updatedAt: "2026-11-25T13:00:00.000Z"
         "400":
           description: >-
             Archivo faltante, formato inválido, campo incorrecto,
@@ -387,6 +498,9 @@ paths:
                   total: 3000
                   status: assigned
                   priority: normal
+                  proof: null
+                  createdAt: "2026-11-25T12:30:00.000Z"
+                  updatedAt: "2026-11-25T12:45:00.000Z"
         "400":
           description: Estado inválido o ID con formato incorrecto.
           content:
@@ -423,9 +537,32 @@ paths:
     get:
       tags: [Users]
       summary: Listar usuarios
+      description: >-
+        Devuelve una lista paginada de usuarios.
+        Permite seleccionar la pagina y la cantidad de resultados.
+      parameters:
+        - in: query
+          name: page
+          required: false
+          description: Numero de pagina solicitada.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          required: false
+          description: Cantidad maxima de usuarios por pagina.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 5
       responses:
         "200":
-          description: Lista de usuarios
+          description: Lista paginada de usuarios
           content:
             application/json:
               schema:
@@ -434,13 +571,31 @@ paths:
                 status: success
                 message: Lista de usuarios
                 payload:
-                  - _id: 6acf7ff968b188fed334690c
-                    firstName: Ana
-                    lastName: Gomez
-                    email: ana@example.com
-                    password: clave-de-prueba
-                    role: customer
-                    documents: []
+                  docs:
+                      - _id: 6acf7ff968b188fed334690c
+                        firstName: Ana
+                        lastName: Gomez
+                        email: ana@example.com
+                        role: customer
+                        documents: []
+                        createdAt: "2026-11-25T12:00:00.000Z"
+                        updatedAt: "2026-11-25T12:00:00.000Z"
+                  totalDocs: 1
+                  page: 1
+                  limit: 5
+                  totalPages: 1
+                  hasNextPage: false
+                  hasPrevPage: false
+        "400":
+          description: Parametros de paginacion invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Los parametros page y limit deben ser enteros positivos. El limite maximo es 100
+                code: INVALID_PAGINATION
         "500":
           description: >-
             Error interno del servidor o de persistencia. El mensaje y el código dependen de la
@@ -486,19 +641,43 @@ paths:
                   firstName: Ana
                   lastName: Gomez
                   email: ana@example.com
-                  password: clave-de-prueba
                   role: customer
                   documents: []
+                  createdAt: "2026-11-25T12:00:00.000Z"
+                  updatedAt: "2026-11-25T12:00:00.000Z"
         "400":
-          description: Faltan campos obligatorios o el rol no es válido.
+          description: >-
+            Faltan campos obligatorios, el cuerpo de la solicitud no es un objeto, la contraseña no es válida o el rol no está permitido.
+            La contraseña debe ser un texto no vacío de hasta 72 bytes en UTF-8.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: Faltan datos obligatorios
-                code: VALIDATION_ERROR
+              examples:
+                missingRequiredFields:
+                  summary: Faltan campos obligatorios o la contraseña no es válida
+                  value:
+                    status: error
+                    message: Faltan datos obligatorios
+                    code: VALIDATION_ERROR
+                invalidBody:
+                  summary: Cuerpo de solicitud inválido
+                  value:
+                    status: error
+                    message: Los datos del usuario deben ser un objeto
+                    code: VALIDATION_ERROR
+                passwordTooLong:
+                  summary: Contraseña superior a 72 bytes
+                  value:
+                    status: error
+                    message: La contraseña no puede superar los 72 bytes
+                    code: VALIDATION_ERROR
+                invalidRole:
+                  summary: Rol inválido
+                  value:
+                    status: error
+                    message: Rol invalido
+                    code: INVALID_USER_ROLE
         "500":
           description: >-
             Error interno. Actualmente los emails duplicados y algunas validaciones de Mongoose
@@ -538,9 +717,10 @@ paths:
                   firstName: Ana
                   lastName: Gomez
                   email: ana@example.com
-                  password: clave-de-prueba
                   role: customer
                   documents: []
+                  createdAt: "2026-11-25T12:00:00.000Z"
+                  updatedAt: "2026-11-25T12:00:00.000Z"
         "400":
           description: El ID no tiene el formato correcto.
           content:
@@ -602,19 +782,44 @@ paths:
                   firstName: Ana Maria
                   lastName: Gomez
                   email: ana@example.com
-                  password: clave-de-prueba
                   role: customer
                   documents: []
+                  createdAt: "2026-11-25T12:00:00.000Z"
+                  updatedAt: "2026-11-25T13:00:00.000Z"
         "400":
-          description: El ID no tiene el formato correcto.
+          description: >-
+            El ID no tiene el formato correcto, el cuerpo de la solicitud no es un objeto, los campos de actualizacion no son validos o la contraseña no cumple los requisitos.
+            No se permiten objetos vacios, campos desconocidos ni operadores de MongoDB.
+            Si se proporciona una contraseña, debe ser un texto no vacio de hasta 72 bytes en UTF-8.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: ID invalido
-                code: VALIDATION_ERROR
+              examples:
+                invalidId:
+                  summary: ID invalido
+                  value:
+                    status: error
+                    message: ID invalido
+                    code: VALIDATION_ERROR
+                invalidBody:
+                  summary: Cuerpo de solicitud invalido
+                  value:
+                    status: error
+                    message: Los datos de actualizacion deben ser un objeto
+                    code: VALIDATION_ERROR
+                invalidFields:
+                  summary: Campos de actualizacion invalidos
+                  value:
+                    status: error
+                    message: Campos de actualizacion invalidos
+                    code: VALIDATION_ERROR
+                invalidPassword:
+                  summary: Contraseña invalida
+                  value:
+                    status: error
+                    message: La contraseña debe ser un texto no vacio de hasta 72 bytes
+                    code: VALIDATION_ERROR
         "404":
           description: Usuario no encontrado
           content:
@@ -653,12 +858,13 @@ paths:
                 message: usuario eliminado
                 payload:
                   _id: 6acf7ff968b188fed334690c
-                  firstName: Ana
+                  firstName: Ana Maria
                   lastName: Gomez
                   email: ana@example.com
-                  password: clave-de-prueba
                   role: customer
                   documents: []
+                  createdAt: "2026-11-25T12:00:00.000Z"
+                  updatedAt: "2026-11-25T13:00:00.000Z"
         "400":
           description: El ID no tiene el formato correcto.
           content:
@@ -753,9 +959,32 @@ paths:
     get:
       tags: [Stores]
       summary: Listar tiendas
+      description: >-
+        Devuelve una lista paginada de tiendas.
+        Permite seleccionar la pagina y la cantidad de resultados.
+      parameters:
+        - in: query
+          name: page
+          required: false
+          description: Numero de pagina solicitada.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          required: false
+          description: Cantidad maxima de tiendas por pagina.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 5
       responses:
         "200":
-          description: Lista de tiendas
+          description: Lista paginada de tiendas
           content:
             application/json:
               schema:
@@ -764,11 +993,30 @@ paths:
                 status: success
                 message: Lista de tiendas
                 payload:
-                  - _id: 6acf7ff968b188fed334690b
-                    name: Tienda Centro
-                    address: Av. Siempre Viva 100
-                    owner: 6acf7ff968b188fed334690a
-                    isActive: true
+                  docs:
+                    - _id: 6acf7ff968b188fed334690b
+                      name: Tienda Centro
+                      address: Av. Siempre Viva 100
+                      owner: 6acf7ff968b188fed334690a
+                      isActive: true
+                      createdAt: "2026-11-25T12:00:00.000Z"
+                      updatedAt: "2026-11-25T12:00:00.000Z"
+                  totalDocs: 1
+                  page: 1
+                  limit: 5
+                  totalPages: 1
+                  hasNextPage: false
+                  hasPrevPage: false
+        "400":
+          description: Parametros de paginacion invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Los parametros page y limit deben ser enteros positivos. El limite maximo es 100
+                code: INVALID_PAGINATION
         "500":
           description: >-
             Error interno del servidor o de persistencia. El mensaje y el código dependen de la
@@ -811,6 +1059,8 @@ paths:
                   address: Av. Siempre Viva 100
                   owner: 6acf7ff968b188fed334690a
                   isActive: true
+                  createdAt: "2026-11-25T12:00:00.000Z"
+                  updatedAt: "2026-11-25T12:00:00.000Z"
         "400":
           description: Faltan datos, el ID es inválido o el propietario no tiene rol store.
           content:
@@ -871,6 +1121,8 @@ paths:
                   address: Av. Siempre Viva 100
                   owner: 6acf7ff968b188fed334690a
                   isActive: true
+                  createdAt: "2026-11-25T12:00:00.000Z"
+                  updatedAt: "2026-11-25T12:00:00.000Z"
         "400":
           description: El ID no tiene el formato correcto.
           content:
@@ -933,6 +1185,8 @@ paths:
                   address: Av. Siempre Viva 200
                   owner: 6acf7ff968b188fed334690a
                   isActive: true
+                  createdAt: "2026-11-25T12:00:00.000Z"
+                  updatedAt: "2026-11-25T13:00:00.000Z"
         "400":
           description: El ID no tiene el formato correcto.
           content:
@@ -982,9 +1236,11 @@ paths:
                 payload:
                   _id: 6acf7ff968b188fed334690b
                   name: Tienda Centro
-                  address: Av. Siempre Viva 100
+                  address: Av. Siempre Viva 200
                   owner: 6acf7ff968b188fed334690a
                   isActive: true
+                  createdAt: "2026-11-25T12:00:00.000Z"
+                  updatedAt: "2026-11-25T13:00:00.000Z"
         "400":
           description: El ID no tiene el formato correcto.
           content:
@@ -1048,19 +1304,16 @@ paths:
                     firstName: Usuario1
                     lastName: Demo1
                     email: user1.c7453c70-e177-4c79-97a3-79c38a6012b1@test.com
-                    password: coder123
                     role: customer
                   - _id: 6acf7ff968b188fed3346912
                     firstName: Usuario2
                     lastName: Demo2
                     email: user2.c7453c70-e177-4c79-97a3-79c38a6012b2@test.com
-                    password: coder123
                     role: customer
                   - _id: 6acf7ff968b188fed3346913
                     firstName: Usuario3
                     lastName: Demo3
                     email: user3.c7453c70-e177-4c79-97a3-79c38a6012b3@test.com
-                    password: coder123
                     role: customer
         "400":
           description: Cantidad fuera del rango 0 a 400 o no entera.
@@ -1126,7 +1379,7 @@ paths:
                     priority: normal
                   - _id: 6acf7ff968b188fed3346922
                     customer: 6acf7ff968b188fed3346912
-                    store: 6acf7ff968b188fed334690b
+                    store: 6acf7ff968b188fed3346932
                     items:
                       - name: Paquete 2
                         quantity: 1
@@ -1137,7 +1390,7 @@ paths:
                     priority: normal
                   - _id: 6acf7ff968b188fed3346923
                     customer: 6acf7ff968b188fed3346913
-                    store: 6acf7ff968b188fed334690b
+                    store: 6acf7ff968b188fed3346933
                     items:
                       - name: Paquete 3
                         quantity: 1
@@ -1259,9 +1512,6 @@ components:
         email:
           type: string
           example: ana@example.com
-        password:
-          type: string
-          example: clave-de-prueba
         role:
           type: string
           enum: [admin, customer, store]
@@ -1270,6 +1520,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Document"
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
     UserInput:
       type: object
       required: [firstName, lastName, email, password]
@@ -1285,6 +1545,10 @@ components:
           example: ana@example.com
         password:
           type: string
+          format: password
+          writeOnly: true
+          minLength: 1
+          description: Contraseña no vacía de hasta 72 bytes en UTF-8. Se almacena hasheada mediante bcrypt y nunca se devuelve en las respuestas de la API.
           example: clave-de-prueba
         role:
           type: string
@@ -1311,6 +1575,16 @@ components:
         isActive:
           type: boolean
           example: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
     StoreInput:
       type: object
       required: [name, address, owner]
@@ -1384,18 +1658,30 @@ components:
           description: Para crear pedidos, users y stores deben ser mayores que cero.
     MockDataResult:
       type: object
-      required: [users, stores, orders]
+      description: Cantidades de documentos mock insertados en MongoDB.
+      required:
+        - users
+        - stores
+        - orders
       properties:
         users:
           type: integer
+          minimum: 0
+          maximum: 800
           example: 3
-          description: Total de clientes y propietarios creados.
+          description: Total de clientes y propietarios de tiendas creados.
         stores:
           type: integer
+          minimum: 0
+          maximum: 400
           example: 1
+          description: Total de tiendas creadas.
         orders:
           type: integer
+          minimum: 0
+          maximum: 400
           example: 2
+          description: Total de pedidos creados.
     ErrorResponse:
       type: object
       required: [status, message, code]
@@ -1424,6 +1710,8 @@ components:
           example: INTERNAL_SERVER_ERROR
     UserUpdateInput:
       type: object
+      minProperties: 1
+      additionalProperties: false
       properties:
         firstName:
           type: string
@@ -1436,7 +1724,11 @@ components:
           example: ana@example.com
         password:
           type: string
-          example: clave-de-prueba
+          format: password
+          writeOnly: true
+          minLength: 1
+          description: Nueva contraseña no vacía de hasta 72 bytes en UTF-8. Si se proporciona, se genera un nuevo hash mediante bcrypt. Si se omite, se conserva la contraseña existente.
+          example: nueva-clave-de-prueba
         role:
           type: string
           enum: [admin, customer, store]
@@ -1463,6 +1755,8 @@ components:
         del propietario.
     Customer:
       type: object
+      nullable: true
+      description: Usuario poblado por las consultas de pedidos. Puede ser null si el usuario fue eliminado.
       required: [_id, firstName, lastName, email, role]
       properties:
         _id:
@@ -1477,19 +1771,10 @@ components:
         email:
           type: string
           example: ana@example.com
-        password:
-          type: string
-          example: clave-de-prueba
         role:
           type: string
           enum: [admin, customer, store]
           example: customer
-        documents:
-          type: array
-          items:
-            $ref: "#/components/schemas/Document"
-      nullable: true
-      description: Usuario poblado por las consultas de pedidos. Puede ser null si el usuario fue eliminado.
     StoreRead:
       type: object
       required: [_id, name, address, owner]
@@ -1510,6 +1795,16 @@ components:
         isActive:
           type: boolean
           example: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
       nullable: true
       description: Tienda poblada por las consultas de pedidos. Puede ser null si la tienda fue eliminada.
     Order:
@@ -1545,12 +1840,17 @@ components:
           enum: [low, normal, high]
           example: normal
         proof:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/OrderProof"
-          description: >-
-            Metadatos del comprobante PDF asociado al pedido.
-            Es null cuando todavía no se ha cargado un comprobante.
+          $ref: "#/components/schemas/OrderProof"
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
     OrderRead:
       type: object
       required: [_id, customer, store, items, deliveryAddress, total, status, priority]
@@ -1582,12 +1882,17 @@ components:
           enum: [low, normal, high]
           example: normal
         proof:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/OrderProof"
-          description: >-
-            Metadatos del comprobante PDF asociado al pedido.
-            Es null cuando todavía no se ha cargado un comprobante.
+          $ref: "#/components/schemas/OrderProof"
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-11-25T12:00:00.000Z"
       description: Pedido consultado con cliente y tienda pobladas.
     OrdersResponse:
       type: object
@@ -1600,9 +1905,44 @@ components:
           type: string
           example: Lista de pedidos
         payload:
-          type: array
-          items:
-            $ref: "#/components/schemas/OrderRead"
+          type: object
+          required:
+            - docs
+            - totalDocs
+            - page
+            - limit
+            - totalPages
+            - hasNextPage
+            - hasPrevPage
+          properties:
+            docs:
+              type: array
+              description: Pedidos de la pagina solicitada.
+              items:
+                $ref: "#/components/schemas/OrderRead"
+            totalDocs:
+              type: integer
+              minimum: 0
+              example: 1
+            page:
+              type: integer
+              minimum: 1
+              example: 1
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              example: 5
+            totalPages:
+              type: integer
+              minimum: 0
+              example: 1
+            hasNextPage:
+              type: boolean
+              example: false
+            hasPrevPage:
+              type: boolean
+              example: false
     OrderResponse:
       type: object
       required: [status, message, payload]
@@ -1638,9 +1978,44 @@ components:
           type: string
           example: Lista de usuarios
         payload:
-          type: array
-          items:
-            $ref: "#/components/schemas/User"
+          type: object
+          required:
+            - docs
+            - totalDocs
+            - page
+            - limit
+            - totalPages
+            - hasNextPage
+            - hasPrevPage
+          properties:
+            docs:
+              type: array
+              description: Usuarios correspondientes a la pagina solicitada.
+              items:
+                $ref: "#/components/schemas/User"
+            totalDocs:
+              type: integer
+              minimum: 0
+              example: 1
+            page:
+              type: integer
+              minimum: 1
+              example: 1
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              example: 5
+            totalPages:
+              type: integer
+              minimum: 0
+              example: 1
+            hasNextPage:
+              type: boolean
+              example: false
+            hasPrevPage:
+              type: boolean
+              example: false
     UserResponse:
       type: object
       required: [status, message, payload]
@@ -1664,9 +2039,44 @@ components:
           type: string
           example: Lista de tiendas
         payload:
-          type: array
-          items:
-            $ref: "#/components/schemas/Store"
+          type: object
+          required:
+            - docs
+            - totalDocs
+            - page
+            - limit
+            - totalPages
+            - hasNextPage
+            - hasPrevPage
+          properties:
+            docs:
+              type: array
+              description: Tiendas correspondientes a la pagina solicitada.
+              items:
+                $ref: "#/components/schemas/Store"
+            totalDocs:
+              type: integer
+              minimum: 0
+              example: 1
+            page:
+              type: integer
+              minimum: 1
+              example: 1
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              example: 5
+            totalPages:
+              type: integer
+              minimum: 0
+              example: 1
+            hasNextPage:
+              type: boolean
+              example: false
+            hasPrevPage:
+              type: boolean
+              example: false
     StoreResponse:
       type: object
       required: [status, message, payload]
@@ -1679,6 +2089,28 @@ components:
           example: Tienda creada
         payload:
           $ref: "#/components/schemas/Store"
+    MockUser:
+      type: object
+      description: Usuario ficticio generado en memoria sin persistencia en MongoDB.
+      required: [_id, firstName, lastName, email, role]
+      properties:
+        _id:
+          type: string
+          example: 6acf7ff968b188fed3346911
+        firstName:
+          type: string
+          example: Usuario1
+        lastName:
+          type: string
+          example: Demo1
+        email:
+          type: string
+          format: email
+          example: user1.c7453c70-e177-4c79-97a3-79c38a6012b1@test.com
+        role:
+          type: string
+          enum: [customer]
+          example: customer
     MockUsersResponse:
       type: object
       required: [status, message, payload]
@@ -1692,7 +2124,56 @@ components:
         payload:
           type: array
           items:
-            $ref: "#/components/schemas/User"
+            $ref: "#/components/schemas/MockUser"
+    MockOrder:
+      type: object
+      description: Pedido ficticio generado en memoria sin persistencia en MongoDB.
+      required:
+        - _id
+        - customer
+        - store
+        - items
+        - deliveryAddress
+        - total
+        - status
+        - priority
+      properties:
+        _id:
+          type: string
+          example: 6acf7ff968b188fed3346921
+        customer:
+          type: string
+          description: ID de un cliente ficticio generado en memoria.
+          example: 6acf7ff968b188fed3346911
+        store:
+          type: string
+          description: ID de una tienda ficticia generada en memoria.
+          example: 6acf7ff968b188fed334690b
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+          example:
+            - name: Paquete 1
+              quantity: 1
+              price: 1500
+        deliveryAddress:
+          type: string
+          example: Av. Siempre Viva 101
+        total:
+          type: number
+          description: Calculado a partir de la cantidad y el precio de los items.
+          example: 1500
+        status:
+          type: string
+          enum:
+            - created
+          example: created
+        priority:
+          type: string
+          enum:
+            - normal
+          example: normal
     MockOrdersResponse:
       type: object
       required: [status, message, payload]
@@ -1706,7 +2187,7 @@ components:
         payload:
           type: array
           items:
-            $ref: "#/components/schemas/Order"
+            $ref: "#/components/schemas/MockOrder"
     MockDataResponse:
       type: object
       required: [status, message, payload]
@@ -1748,6 +2229,10 @@ components:
           example: "2026-11-02T15:00:00.000Z"
     OrderProof:
       type: object
+      nullable: true
+      description: >-
+        Metadatos del comprobante PDF asociado al pedido.
+        Es null cuando todavía no se ha cargado un comprobante.
       required: [originalName, fileName, path, mimeType, size, type, uploadedAt]
       properties:
         originalName:

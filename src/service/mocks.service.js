@@ -20,9 +20,14 @@ const validateQuantity = (quantity, name) => {
   return parsed;
 };
 
+
 export const generateUsers = async (quantity) => {
-  return generateMockUsers(validateQuantity(quantity, 'qty'));
-};
+  const users = generateMockUsers(
+    validateQuantity(quantity, 'qty')
+  )
+
+  return users.map(({ password, ...user }) => user)
+}
 
 export const generateOrders = async (quantity) => {
   quantity = validateQuantity(quantity, 'qty');

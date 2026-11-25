@@ -1,0 +1,26 @@
+# Dependencias locales
+node_modules
+
+# Variables de entorno y credenciales
+.env
+.env.*
+!.env.example
+
+# Control de versiones
+.git
+.gitignore
+
+# Archivos generados durante la ejecucion
+logs
+uploads
+coverage
+
+# Archivos temporales
+*.log
+*.tmp
+*.temp
+tmp
+temp
+
+# Testing
+tests

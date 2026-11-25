@@ -5,8 +5,25 @@ import { createError } from '../utils/apiResponse.js';
 import { ERROR_CODES } from '../utils/errorDictionary.js';
 
 export const storeService = {
-  getStores: async () => {
-    return storeRepository.findAll();
+  getStores: async ({ page = "1", limit = "10" } = {}) => {
+    const pageNumber = Number(page)
+    const limitNumber = Number(limit)
+
+    if (
+      !Number.isSafeInteger(pageNumber) ||
+      !Number.isSafeInteger(limitNumber) ||
+      pageNumber < 1 ||
+      limitNumber < 1 ||
+      limitNumber > 100 ||
+      !Number.isSafeInteger((pageNumber - 1) * limitNumber)
+    ) {
+      throw createError(ERROR_CODES.INVALID_PAGINATION)
+    }
+
+    return storeRepository.findAll({
+      page: pageNumber,
+      limit: limitNumber
+    })
   },
 
   getStoreById: async (id) => {
